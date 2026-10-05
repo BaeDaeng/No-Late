@@ -1,0 +1,1 @@
+export function ErrorScreen({ error, onRetry }) { return <main className="page"><section className="card"><h1>문제가 발생했습니다</h1><p>{error.message || '잠시 후 다시 시도해 주세요.'}</p><button className="button" onClick={onRetry}>다시 시도</button></section></main> }
