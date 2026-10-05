@@ -1,0 +1,10 @@
+create table public.user_settings (user_id uuid primary key references auth.users(id) on delete cascade, data jsonb not null default '{}'::jsonb, updated_at timestamptz not null default now());
+create table public.saved_trips (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, data jsonb not null, created_at timestamptz not null default now());
+create table public.shared_trips (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, data jsonb not null, expires_at timestamptz not null, created_at timestamptz not null default now());
+alter table public.user_settings enable row level security;
+alter table public.saved_trips enable row level security;
+alter table public.shared_trips enable row level security;
+create policy "settings own" on public.user_settings for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "trips own" on public.saved_trips for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "shared create own" on public.shared_trips for insert with check (auth.uid() = owner_id);
+create policy "shared read unexpired" on public.shared_trips for select using (expires_at > now());
