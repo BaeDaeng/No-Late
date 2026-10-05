@@ -6,7 +6,7 @@ Deno.serve(async (request) => {
   try {
     const { action, ...params } = await request.json()
     const kakaoKey = Deno.env.get('KAKAO_REST_API_KEY')
-    const external = async (url: string, headers: HeadersInit = {}) => { const response = await fetch(url, { headers }); if (!response.ok) throw new Error(`외부 API 오류 (${response.status})`); return response.json() }
+    const external = async (url: string, headers: HeadersInit = {}) => { const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!response.ok) throw new Error(`외부 API 오류 (${response.status})`); return response.json() }
     if (action === 'kakao-public-transit') {
       const query = new URLSearchParams(params).toString()
       return json(await external(`https://dapi.kakao.com/v2/routing/publictraffic?${query}`, { Authorization: `KakaoAK ${kakaoKey}` }))
