@@ -1,0 +1,9 @@
+/* 결과 화면은 지도를 가리지 않도록 두 개의 독립 패널로 배치한다. */
+.route-screen { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, .8fr); min-height: 100svh; }
+.route-screen .route-map-card { position: sticky; top: 0; height: 100svh; min-height: 100svh; }
+.route-screen .route-sheet { width: auto; height: 100svh; margin: 0; overflow-y: auto; border-radius: 0; box-shadow: none; }
+@media (max-width: 780px) {
+  .route-screen { display: block; }
+  .route-screen .route-map-card { position: sticky; top: 0; height: 44svh; min-height: 44svh; }
+  .route-screen .route-sheet { height: auto; min-height: 56svh; margin: 0; border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgb(15 23 42 / 12%); }
+}
