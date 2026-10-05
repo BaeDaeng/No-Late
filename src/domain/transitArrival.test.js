@@ -3,6 +3,7 @@ import { fallbackTransitArrival, toBusVehicleStatus, toSubwayArrivals } from './
 
 describe('transit arrival adapter', () => {
   it('converts seconds into rounded-up minutes and sorts arrivals', () => expect(toSubwayArrivals({ realtimeArrivalList: [{ subwayId: '1002', statnNm: '강남', barvlDt: '121' }, { subwayId: '1002', statnNm: '강남', barvlDt: '30' }] }, '강남').map((item) => item.arrivalInMinutes)).toEqual([1, 3]))
+  it('does not present an unknown zero-second ETA as immediate arrival', () => expect(toSubwayArrivals({ realtimeArrivalList: [{ subwayId: '1077', statnNm: '강남', barvlDt: '0', arvlMsg2: '[5]번째 전역' }] }, '강남')[0]).toMatchObject({ arrivalInMinutes: null, message: '[5]번째 전역' }))
   it('marks fallback arrivals clearly', () => expect(fallbackTransitArrival('강남', 6).isFallback).toBe(true))
   it('describes a bus position response without inventing an arrival time', () => expect(toBusVehicleStatus({ msgBody: { itemList: [{ vehId: '1' }] } }, '강남').arrivalInMinutes).toBeNull())
 })
