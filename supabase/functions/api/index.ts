@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
       return json(await external(`https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?${query}`))
     }
     if (action === 'subway') return json(await external(`http://swopenAPI.seoul.go.kr/api/subway/${Deno.env.get('SEOUL_SUBWAY_API_KEY')}/json/realtimeStationArrival/0/10/${encodeURIComponent(params.stationName)}`))
-    if (action === 'bus') return json(await external(`https://ws.bus.go.kr/api/rest/buspos/getBusPosByRouteSt?${new URLSearchParams({ busRouteId: params.routeId, startOrd: '1', endOrd: '99', serviceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
+    if (action === 'bus') return json(await external(`http://ws.bus.go.kr/api/rest/buspos/getBusPosByRtid?${new URLSearchParams({ busRouteId: params.routeId, serviceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
     return json({ error: '지원하지 않는 요청입니다.' }, 400)
   } catch (error) { return json({ error: error instanceof Error ? error.message : '요청 처리 실패' }, 502) }
 })
