@@ -6,7 +6,7 @@ import { toRoutePlan } from '../services/api/adapters.js'
 import { apiClient } from '../services/api/apiClient.js'
 import { mockRoutePlan } from '../services/api/fixtures.js'
 import { isMockMode } from '../services/api/mockAdapter.js'
-import { fallbackTransitArrival } from '../domain/transitArrival.js'
+import { fallbackTransitArrival, toBusVehicleStatus } from '../domain/transitArrival.js'
 import { REALTIME_LIMITS } from '../config/realtimeLimits.js'
 
 export function ResultPage({ tripRequest, onBack }) {
@@ -36,10 +36,11 @@ export function ResultPage({ tripRequest, onBack }) {
       const firstTransit = selectedRoute.segments.find((segment) => segment.type === 'subway' || segment.type === 'bus')
       const requests = [apiClient.getWeatherForecast(tripRequest.origin, tripRequest.appointmentAt)]
       if (firstTransit?.type === 'subway') requests.push(apiClient.getSubwayArrivals(firstTransit.startName))
+      if (firstTransit?.type === 'bus' && firstTransit.routeId) requests.push(apiClient.getBusVehiclePositions(firstTransit.routeId))
       const [weatherResult, transitResult] = await Promise.allSettled(requests)
       if (!active) return
       const weather = weatherResult.status === 'fulfilled' ? weatherResult.value : null
-      const arrival = transitResult?.status === 'fulfilled' && transitResult.value.arrivals.length ? transitResult.value.arrivals[0] : firstTransit ? fallbackTransitArrival(firstTransit.startName, REALTIME_LIMITS.fallbackWaitMinutes) : null
+      const arrival = transitResult?.status === 'fulfilled' && transitResult.value.arrivals?.length ? transitResult.value.arrivals[0] : transitResult?.status === 'fulfilled' && firstTransit?.type === 'bus' ? toBusVehicleStatus(transitResult.value.data, firstTransit.startName) : firstTransit ? fallbackTransitArrival(firstTransit.startName, REALTIME_LIMITS.fallbackWaitMinutes) : null
       const failures = [weatherResult, transitResult].filter((result) => result?.status === 'rejected').length
       setRealtime({ loading: false, weather, arrival, warning: failures || (firstTransit && firstTransit.type !== 'subway') ? '일부 실시간 정보를 받지 못해 보수적으로 계산합니다.' : null })
     }

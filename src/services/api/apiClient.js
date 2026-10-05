@@ -8,6 +8,7 @@ const kakaoBaseUrl = 'https://dapi.kakao.com/v2/local'
 const odsayBaseUrl = 'https://api.odsay.com/v1/api/searchPubTransPathT'
 const kmaBaseUrl = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst'
 const subwayBaseUrl = 'https://swopenAPI.seoul.go.kr/api/subway'
+const busBaseUrl = 'https://ws.bus.go.kr/api/rest/buspos/getBusPosByRouteSt'
 const realtimeCachePrefix = 'no-late:realtime:'
 
 async function requestJson(url, options = {}) {
@@ -84,5 +85,18 @@ export const apiClient = {
     const arrivals = toSubwayArrivals(data, stationName)
     cacheRealtime(cacheKey, arrivals, REALTIME_LIMITS.transitCacheTtlMs)
     return { arrivals, fromCache: false }
+  },
+
+  async getBusVehiclePositions(routeId) {
+    const key = requireKey(publicApiKeys.seoulBusServiceKey, '서울 버스 API')
+    if (!routeId) throw new Error('버스 노선 식별자가 없습니다.')
+    const cacheKey = `bus:${routeId}`
+    const cached = getCachedRealtime(cacheKey)
+    if (cached) return { data: cached, fromCache: true }
+    const url = new URL(busBaseUrl)
+    url.search = new URLSearchParams({ busRouteId: routeId, startOrd: '1', endOrd: '99', serviceKey: key, resultType: 'json' }).toString()
+    const data = await requestJson(url)
+    cacheRealtime(cacheKey, data, REALTIME_LIMITS.transitCacheTtlMs)
+    return { data, fromCache: false }
   },
 }
