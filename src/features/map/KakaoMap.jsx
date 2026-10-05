@@ -21,7 +21,7 @@ function loadKakaoMaps(key) {
 }
 
 function routePoints(route, origin, destination) {
-  const points = [origin, ...(route?.segments || []).flatMap((segment) => [segment.startCoordinates, segment.endCoordinates]), destination].filter(Boolean)
+  const points = [origin, ...(route?.segments || []).flatMap((segment) => segment.pathPoints?.length ? segment.pathPoints : [segment.startCoordinates, segment.endCoordinates]), destination].filter(Boolean)
   return points.filter((point, index) => index === 0 || point.latitude !== points[index - 1].latitude || point.longitude !== points[index - 1].longitude)
 }
 

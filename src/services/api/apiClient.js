@@ -2,7 +2,7 @@ import { supabase } from '../../supabase.js'
 import { REALTIME_LIMITS } from '../../config/realtimeLimits.js'
 import { getKmaBaseDateTime, pickWeatherForecast, toKmaGrid } from '../../domain/weather.js'
 import { toSubwayArrivals } from '../../domain/transitArrival.js'
-import { cacheRoute, getCachedRoute, reserveOdsayRequest } from './requestCache.js'
+import { cacheRoute, getCachedRoute } from './requestCache.js'
 
 const realtimeCachePrefix = 'no-late:realtime:'
 
@@ -27,8 +27,7 @@ export const apiClient = {
     const cacheKey = [origin.longitude, origin.latitude, destination.longitude, destination.latitude].map((value) => value.toFixed(5)).join(':')
     const cached = getCachedRoute(cacheKey)
     if (cached) return { ...cached, fromCache: true }
-    reserveOdsayRequest()
-    const data = await requestApi('odsay', { SX: origin.longitude, SY: origin.latitude, EX: destination.longitude, EY: destination.latitude })
+    const data = await requestApi('kakao-public-transit', { start_x: origin.longitude, start_y: origin.latitude, end_x: destination.longitude, end_y: destination.latitude, s_name: origin.name, e_name: destination.name })
     cacheRoute(cacheKey, data)
     return { ...data, fromCache: false }
   },

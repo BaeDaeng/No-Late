@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Loading } from '../components/Loading.jsx'
 import { KakaoMap } from '../features/map/KakaoMap.jsx'
 import { personalizeRoute } from '../domain/movementEstimate.js'
-import { toRoutePlan } from '../services/api/adapters.js'
+import { toKakaoRoutePlan } from '../services/api/adapters.js'
 import { apiClient } from '../services/api/apiClient.js'
 import { mockRoutePlan } from '../services/api/fixtures.js'
 import { isMockMode } from '../services/api/mockAdapter.js'
@@ -19,8 +19,8 @@ export function ResultPage({ tripRequest, onBack }) {
       if (isMockMode) { if (active) { setState({ loading: false, routes: [mockRoutePlan], error: null, fromCache: true }); setSelectedId(mockRoutePlan.id) }; return }
       try {
         const response = await apiClient.getTransitRoutes(tripRequest.origin, tripRequest.destination)
-        if (response.error || !response.result?.path?.length) throw new Error(response.error?.[0]?.message || '이동 가능한 대중교통 경로를 찾지 못했습니다.')
-        const routes = response.result.path.slice(0, 3).map((path, index) => personalizeRoute(toRoutePlan(path, `odsay-${index}`), tripRequest)).sort((a, b) => a.totalMinutes - b.totalMinutes)
+        if (response.status !== 'OK' || !response.routes?.length) throw new Error('이동 가능한 대중교통 경로를 찾지 못했습니다.')
+        const routes = response.routes.slice(0, 3).map((route, index) => personalizeRoute(toKakaoRoutePlan(route, `kakao-${index}`), tripRequest)).sort((a, b) => a.totalMinutes - b.totalMinutes)
         if (active) { setState({ loading: false, routes, error: null, fromCache: response.fromCache }); setSelectedId(routes[0].id) }
       } catch (routeError) { if (active) setState({ loading: false, routes: [], error: routeError.message, fromCache: false }) }
     }
