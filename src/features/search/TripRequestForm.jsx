@@ -26,6 +26,7 @@ function Field({ label, error, ...props }) { return <label>{label}<input {...pro
 function Choice({ label, ...props }) { return <label className="choice"><input type="radio" {...props} />{label}</label> }
 function AppointmentTimePicker({ value, error, onChange }) {
   const [selectedHour = '', selectedMinute = ''] = value.split(':')
-  const setTime = (hour, minute) => onChange(hour && minute ? `${hour}:${minute}` : '')
-  return <fieldset className="time-picker"><legend>약속 시간 (오늘)</legend><div className="time-selects"><label>시<select value={selectedHour} onChange={(event) => setTime(event.target.value, selectedMinute)}><option value="">시</option>{hours.map((hour) => <option key={hour} value={hour}>{hour}시</option>)}</select></label><label>분<select value={selectedMinute} onChange={(event) => setTime(selectedHour, event.target.value)}><option value="">분</option>{minutes.map((minute) => <option key={minute} value={minute}>{minute}분</option>)}</select></label></div>{error && <span className="field-error" role="alert">{error}</span>}</fieldset>
+  const setHour = (hour) => onChange(`${hour}:${selectedMinute || '00'}`)
+  const setMinute = (minute) => onChange(`${selectedHour || '00'}:${minute}`)
+  return <fieldset className="time-picker"><legend>약속 시간 (오늘)</legend><div className="time-selects"><label>시<select value={selectedHour} onChange={(event) => setHour(event.target.value)}><option value="">시</option>{hours.map((hour) => <option key={hour} value={hour}>{hour}시</option>)}</select></label><label>분<select value={selectedMinute} onChange={(event) => setMinute(event.target.value)}><option value="">분</option>{minutes.map((minute) => <option key={minute} value={minute}>{minute}분</option>)}</select></label></div>{error && <span className="field-error" role="alert">{error}</span>}</fieldset>
 }
