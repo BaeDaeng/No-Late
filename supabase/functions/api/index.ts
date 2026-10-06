@@ -13,10 +13,6 @@ Deno.serve(async (request) => {
     }
     if (action === 'kakao-place') return json(await external(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(params.query)}`, { Authorization: `KakaoAK ${kakaoKey}` }))
     if (action === 'kakao-reverse') return json(await external(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${params.longitude}&y=${params.latitude}`, { Authorization: `KakaoAK ${kakaoKey}` }))
-    if (action === 'odsay') {
-      const query = new URLSearchParams({ SX: params.SX, SY: params.SY, EX: params.EX, EY: params.EY, OPT: '0', apiKey: Deno.env.get('ODSAY_API_KEY') || '' })
-      return json(await external(`https://api.odsay.com/v1/api/searchPubTransPathT?${query}`))
-    }
     if (action === 'weather') {
       const query = new URLSearchParams({ serviceKey: Deno.env.get('KMA_SERVICE_KEY') || '', pageNo: '1', numOfRows: '1000', dataType: 'JSON', base_date: params.baseDate, base_time: params.baseTime, nx: params.nx, ny: params.ny })
       return json(await external(`https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?${query}`))
