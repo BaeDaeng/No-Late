@@ -1,0 +1,5 @@
+.saved-place-list { display: grid; gap: 7px; max-height: 180px; overflow-y: auto; }
+.saved-place-list button { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; width: 100%; border: 1px solid #e1e7ea; border-radius: 9px; padding: 9px; background: #fff; color: #45515a; font: inherit; font-size: .77rem; text-align: left; cursor: pointer; }
+.saved-place-list button:hover, .saved-place-list button.active { border-color: #19a767; background: #edf9f2; }.saved-place-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.saved-place-list span { color: #82909a; }
+.saved-route-time { display: grid; gap: 8px; padding: 10px; border: 1px solid #d7ebe0; border-radius: 10px; background: #f5fbf7; }.saved-route-time label { display: grid; gap: 4px; }.saved-route-time input { min-height: 38px; }.saved-route-time .button { min-height: 40px; }.saved-route-time small { color: #65736c; font-size: .7rem; }
+@media (max-width: 760px) { .saved-place-list { max-height: 150px; } }
