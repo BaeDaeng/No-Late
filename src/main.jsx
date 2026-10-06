@@ -5,6 +5,7 @@ import './App.css'
 import './realtime.css'
 import './route-layout.css'
 import './map-poi.css'
+import './map-panel.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
