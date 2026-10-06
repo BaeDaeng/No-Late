@@ -13,3 +13,4 @@
 .adjustment-detail h2 { margin: 0 0 6px; font-size: 1rem; }
 .adjustment-detail p { display: grid; gap: 2px; margin: 10px 0; }
 .adjustment-detail span { color: #64748b; font-size: .82rem; }
+.result-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .8rem 0; }

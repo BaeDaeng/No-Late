@@ -8,6 +8,27 @@ const sharedData = ({ tripRequest, route, prediction }) => ({
   prediction: { safeMinutes: prediction.safeMinutes, optimisticMinutes: prediction.optimisticMinutes, leaveByTime: prediction.leaveByTime, riskScore: prediction.riskScore },
 })
 
+const savedData = ({ tripRequest, route, prediction }) => ({
+  originName: tripRequest.origin.name,
+  destinationName: tripRequest.destination.name,
+  appointmentAt: tripRequest.appointmentAt,
+  route: { totalMinutes: route.totalMinutes, transferCount: route.transferCount, segments: route.segments.map(({ type, label, durationMinutes, startName, endName }) => ({ type, label, durationMinutes, startName, endName })) },
+  prediction: { safeMinutes: prediction.safeMinutes, optimisticMinutes: prediction.optimisticMinutes, riskScore: prediction.riskScore },
+})
+
+export async function saveTrip(payload) {
+  const session = await ensureAnonymousSession()
+  const { error } = await supabase.from('saved_trips').insert({ user_id: session.user.id, data: savedData(payload) })
+  if (error) throw error
+}
+
+export async function getSavedTrips() {
+  const session = await ensureAnonymousSession()
+  const { data, error } = await supabase.from('saved_trips').select('id, data, created_at').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(20)
+  if (error) throw error
+  return data || []
+}
+
 export async function createSharedTrip(payload) {
   const session = await ensureAnonymousSession()
   const { data, error } = await supabase.from('shared_trips').insert({ owner_id: session.user.id, data: sharedData(payload), expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }).select('id').single()
