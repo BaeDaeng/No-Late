@@ -1,3 +1,15 @@
 .realtime-summary { margin-top: 16px; padding: 16px 18px; border: 1px solid #bfdbfe; border-radius: 14px; background: #eff6ff; }
 .realtime-summary h2 { margin: 0 0 8px; font-size: 1rem; }
 .realtime-summary p { margin: 5px 0; color: #334155; font-size: .9rem; }
+.prediction-summary { margin: 14px 0; padding: 18px; border: 1px solid #bfdbfe; border-radius: 16px; background: #eff6ff; }
+.prediction-summary.risk-medium { border-color: #fcd34d; background: #fffbeb; }
+.prediction-summary.risk-high { border-color: #fca5a5; background: #fef2f2; }
+.prediction-label { display: block; color: #475569; font-size: .8rem; font-weight: 700; }
+.prediction-summary > strong { display: block; margin: 2px 0; font-size: clamp(2rem, 7vw, 3rem); line-height: 1; }
+.prediction-summary p { margin: 7px 0; color: #334155; }
+.prediction-summary > div { display: flex; flex-wrap: wrap; gap: 6px 12px; color: #334155; font-size: .85rem; }
+.prediction-summary small { display: block; margin-top: 10px; color: #64748b; font-size: .74rem; }
+.adjustment-detail { margin-top: 16px; padding: 16px 18px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+.adjustment-detail h2 { margin: 0 0 6px; font-size: 1rem; }
+.adjustment-detail p { display: grid; gap: 2px; margin: 10px 0; }
+.adjustment-detail span { color: #64748b; font-size: .82rem; }
