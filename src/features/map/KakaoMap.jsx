@@ -26,7 +26,10 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   const updatePopupPosition = useCallback((place, map) => {
     if (!place || !map || !window.kakao?.maps) return
     const point = map.getProjection().pointFromCoords(new window.kakao.maps.LatLng(place.latitude, place.longitude))
-    setPopupPosition({ left: `${point.x}px`, top: `${point.y}px` })
+    const popupWidth = Math.min(300, Math.max(220, window.innerWidth - 24))
+    const horizontalInset = (popupWidth / 2) + 12
+    const left = Math.max(horizontalInset, Math.min(point.x, window.innerWidth - horizontalInset))
+    setPopupPosition({ left: `${left}px`, top: `${point.y}px` })
   }, [])
 
   useEffect(() => {

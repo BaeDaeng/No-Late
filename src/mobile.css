@@ -1,0 +1,144 @@
+/* Mobile map-first layout: the map remains useful while the route form behaves as a bottom sheet. */
+@media (max-width: 760px) {
+  :root { font-size: 16px; }
+  body { min-width: 320px; background: #f4f6f8; }
+
+  .map-first-shell { min-height: 100svh; padding-bottom: env(safe-area-inset-bottom); }
+  .map-first-shell .map-card {
+    position: fixed;
+    inset: 0 0 auto;
+    height: 49svh;
+    min-height: 310px;
+  }
+
+  .map-header {
+    position: fixed;
+    z-index: 8;
+    top: max(12px, env(safe-area-inset-top));
+    left: 12px;
+    gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid rgb(229 232 235 / 92%);
+    background: rgb(255 255 255 / 94%);
+    box-shadow: 0 3px 12px rgb(15 23 42 / 12%);
+    backdrop-filter: blur(10px);
+  }
+  .map-header-sub { display: none; }
+  .brand-mark { width: 24px; height: 24px; }
+
+  .account-area {
+    position: fixed;
+    z-index: 11;
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+  }
+  .profile-trigger { min-width: 42px; min-height: 42px; justify-content: center; padding: 8px 11px; }
+  .profile-trigger span { display: none; }
+  .account-panel {
+    position: fixed;
+    top: max(62px, calc(env(safe-area-inset-top) + 52px));
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(70svh, 580px);
+    overflow-y: auto;
+    border-radius: 16px;
+  }
+
+  .map-controls { top: max(68px, calc(env(safe-area-inset-top) + 58px)); right: 12px; }
+  .map-controls button { width: 42px; height: 40px; }
+  .map-controls span { padding: 6px; }
+
+  .map-side-panel {
+    position: relative;
+    z-index: 6;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    min-height: 54svh;
+    margin: calc(49svh - 18px) 0 0;
+    padding: 27px 18px calc(24px + env(safe-area-inset-bottom));
+    overflow: visible;
+    border: 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 24px rgb(15 23 42 / 13%);
+  }
+  .map-side-panel::before {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d9dee4;
+    content: '';
+    transform: translateX(-50%);
+  }
+  .map-side-panel .map-search-heading { display: grid; gap: 3px; }
+  .map-side-panel .map-search-heading h1 { margin: 0; font-size: 1.25rem; letter-spacing: -.035em; }
+  .map-side-panel .map-search-heading p { font-size: .82rem; line-height: 1.45; }
+  .map-side-panel .eyebrow { font-size: .72rem; }
+  .map-side-panel .route-form { gap: 13px; margin-top: 16px; }
+  .map-side-panel .route-form .form-grid { gap: 11px; }
+  .map-side-panel .route-form input,
+  .map-side-panel .route-form select { min-height: 44px; padding: 10px 11px; font-size: 16px; }
+  .map-side-panel .location-tabs button { min-height: 44px; padding: 10px; }
+  .map-side-panel .compact-fields { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .map-side-panel .choice { min-height: 38px; padding: 7px 8px; font-size: .78rem; }
+  .map-side-panel .route-submit { min-height: 48px; padding: 12px 14px; font-size: .96rem; }
+  .map-side-panel .saved-place-row button { min-height: 36px; }
+
+  .map-click-card {
+    width: min(300px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    padding: 14px 15px;
+  }
+  .map-click-card > p { font-size: .82rem; }
+
+  .route-screen { display: block; min-height: 100svh; }
+  .route-screen .route-map-card {
+    position: sticky;
+    top: 0;
+    height: 43svh;
+    min-height: 280px;
+  }
+  .route-screen .route-sheet {
+    position: relative;
+    z-index: 6;
+    min-height: 57svh;
+    height: auto;
+    margin: -18px 0 0;
+    padding: 27px 18px calc(28px + env(safe-area-inset-bottom));
+    overflow: visible;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 24px rgb(15 23 42 / 13%);
+  }
+  .route-screen .route-sheet::before {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d9dee4;
+    content: '';
+    transform: translateX(-50%);
+  }
+  .route-sheet .back-link { min-height: 38px; padding-left: 0; }
+  .route-heading h1 { font-size: 1.22rem; line-height: 1.35; }
+  .route-heading p { font-size: .82rem; line-height: 1.45; }
+  .result-actions { grid-template-columns: 1fr 1fr; }
+  .result-actions .button { min-height: 44px; padding: 9px; font-size: .82rem; }
+  .route-card { padding: 14px; }
+  .route-preview { gap: 5px; }
+  .segment-chip { max-width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .map-side-panel { padding-right: 14px; padding-left: 14px; }
+  .map-side-panel .compact-fields { grid-template-columns: 1fr; }
+  .map-side-panel .choices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .map-side-panel .choice { justify-content: center; padding: 7px 4px; font-size: .71rem; }
+  .result-actions { grid-template-columns: 1fr; }
+}
