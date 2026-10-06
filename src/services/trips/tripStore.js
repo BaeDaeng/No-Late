@@ -1,13 +1,4 @@
-import { supabase } from '../../supabase.js'
-
-export async function ensureAnonymousSession() {
-  if (!supabase) throw new Error('저장 기능을 사용할 수 없습니다.')
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) return session
-  const { data, error } = await supabase.auth.signInAnonymously()
-  if (error) throw error
-  return data.session
-}
+import { ensureAnonymousSession, supabase } from '../../supabase.js'
 
 const sharedData = ({ tripRequest, route, prediction }) => ({
   originName: tripRequest.origin.name,
