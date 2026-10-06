@@ -5,6 +5,12 @@ export function toSubwayArrivals(data, stationName) {
   }).sort((a, b) => (a.arrivalInMinutes ?? Infinity) - (b.arrivalInMinutes ?? Infinity))
 }
 
+export function selectSubwayArrival(arrivals, lineLabel) {
+  const match = String(lineLabel || '').match(/([1-9])호선/)
+  if (!match) return null
+  return arrivals.find((arrival) => arrival.routeId === `100${match[1]}`) || null
+}
+
 export function fallbackTransitArrival(stopName, minutes) { return { routeId: '', stopName, arrivalInMinutes: minutes, fetchedAt: new Date().toISOString(), source: 'fallback', isFallback: true, message: '실시간 도착 정보를 받지 못해 기본 대기시간으로 계산합니다.', direction: '' } }
 
 export function toBusVehicleStatus(data, stopName) {
