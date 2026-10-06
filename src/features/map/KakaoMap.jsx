@@ -16,13 +16,11 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   const mapElement = useRef(null)
   const overlays = useRef([])
   const clickMarker = useRef(null)
-  const targetRef = useRef(selectionTarget)
+  const nearbyMarkers = useRef([])
   const [mapInstance, setMapInstance] = useState(null)
   const [status, setStatus] = useState(mapKey ? '지도를 준비하는 중입니다…' : '카카오 JavaScript 키를 추가하면 이곳에 지도가 표시됩니다.')
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [zoom, setZoom] = useState(5)
-
-  useEffect(() => { targetRef.current = selectionTarget }, [selectionTarget])
 
   useEffect(() => {
     if (!mapKey) return undefined
@@ -33,7 +31,7 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
       kakao.maps.event.addListener(map, 'zoom_changed', () => setZoom(map.getLevel()))
       kakao.maps.event.addListener(map, 'click', async (event) => {
         const coordinates = { latitude: event.latLng.getLat(), longitude: event.latLng.getLng() }
-        try { const place = await apiClient.reverseGeocode(coordinates); if (!cancelled) { const target = targetRef.current; setSelectedLocation(place); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map }); setStatus(`${place.name} · ${target === 'origin' ? '출발지' : target === 'destination' ? '도착지' : target === 'home' ? '집' : '회사'}로 지정할 수 있습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 주소를 찾지 못했습니다.') }
+        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { const selected = { ...place, nearby }; setSelectedLocation(selected); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map }); nearbyMarkers.current.forEach((marker) => marker.setMap(null)); nearbyMarkers.current = nearby.map((nearbyPlace) => { const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(nearbyPlace.latitude, nearbyPlace.longitude), map, title: nearbyPlace.name }); kakao.maps.event.addListener(marker, 'click', () => setSelectedLocation({ ...nearbyPlace, nearby })); return marker }); setStatus(`${place.name} 주변의 장소와 역 정보를 찾았습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
       })
       setMapInstance(map); setStatus(routeMode ? '선택한 경로를 지도에 표시합니다.' : '지도를 누르면 출발지·도착지·집·회사로 지정할 수 있습니다.')
     })).catch((error) => { if (!cancelled) setStatus(error.message) })
@@ -53,7 +51,8 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
 
   const moveZoom = (amount) => { if (mapInstance) mapInstance.setLevel(Math.max(1, Math.min(14, mapInstance.getLevel() + amount))) }
   const assignSelected = () => { if (selectedLocation && onSelectPlace) onSelectPlace(selectedLocation, selectionTarget) }
+  const selectNearby = (place) => setSelectedLocation((current) => ({ ...place, nearby: current?.nearby || [] }))
   const targetName = selectionTarget === 'origin' ? '출발지' : selectionTarget === 'destination' ? '도착지' : selectionTarget === 'home' ? '집' : '회사'
   const statusText = routeMode ? (route ? `${route.totalMinutes}분 · ${route.transferCount}회 환승 경로` : status) : status
-  return <section className={`map-card${routeMode ? ' route-map-card' : ''}`} aria-label="카카오 지도"><div className="map-canvas"><div className="map-sdk-host" ref={mapElement} /></div><div className="map-controls" aria-label="지도 확대 축소"><button type="button" onClick={() => moveZoom(-1)}>＋</button><button type="button" onClick={() => moveZoom(1)}>－</button><span>{zoom}</span></div>{!routeMode && selectedLocation && <div className="map-click-card"><strong>{selectedLocation.name}</strong><span>{selectedLocation.address}</span><button type="button" onClick={assignSelected}>{targetName}로 지정</button></div>}<div className="map-status"><strong>{routeMode ? '선택한 경로' : `지도에서 ${targetName} 선택`}</strong><span>{statusText}</span></div></section>
+  return <section className={`map-card${routeMode ? ' route-map-card' : ''}`} aria-label="카카오 지도"><div className="map-canvas"><div className="map-sdk-host" ref={mapElement} /></div><div className="map-controls" aria-label="지도 확대 축소"><button type="button" onClick={() => moveZoom(-1)}>＋</button><button type="button" onClick={() => moveZoom(1)}>－</button><span>{zoom}</span></div>{!routeMode && selectedLocation && <div className="map-click-card"><strong>{selectedLocation.name}</strong><span>{selectedLocation.address}</span>{selectedLocation.category && <small>{selectedLocation.category}</small>}{selectedLocation.nearby?.length > 0 && <div className="nearby-place-list">{selectedLocation.nearby.slice(0, 4).map((place) => <button type="button" key={place.id} onClick={() => selectNearby(place)}>{place.category ? `${place.category} · ` : ''}{place.name}</button>)}</div>}<button className="assign-place" type="button" onClick={assignSelected}>{targetName}로 지정</button></div>}<div className="map-status"><strong>{routeMode ? '선택한 경로' : `지도에서 ${targetName} 선택`}</strong><span>{statusText}</span></div></section>
 }

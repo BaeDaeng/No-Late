@@ -22,6 +22,16 @@ export const apiClient = {
     return { id: `current:${longitude.toFixed(6)},${latitude.toFixed(6)}`, name: document?.road_address?.building_name || document?.address?.address_name || '현재 위치', address: document?.road_address?.address_name || document?.address?.address_name || '', latitude, longitude }
   },
 
+  async getNearbyPlaces({ latitude, longitude }) {
+    const cacheKey = `nearby:${latitude.toFixed(4)}:${longitude.toFixed(4)}`
+    const cached = getCachedRealtime(cacheKey)
+    if (cached) return cached
+    const data = await requestApi('kakao-nearby', { latitude, longitude, radius: 350 })
+    const places = (data.documents || []).map((document) => ({ id: document.id, name: document.place_name, address: document.road_address_name || document.address_name || '', latitude: Number(document.y), longitude: Number(document.x), category: document.category_group_name || '' }))
+    cacheRealtime(cacheKey, places, 5 * 60 * 1000)
+    return places
+  },
+
   async getTransitRoutes(origin, destination) {
     if (![origin.latitude, origin.longitude, destination.latitude, destination.longitude].every(Number.isFinite)) throw new Error('출발지와 목적지의 좌표가 필요합니다.')
     const cacheKey = [origin.longitude, origin.latitude, destination.longitude, destination.latitude].map((value) => value.toFixed(5)).join(':')

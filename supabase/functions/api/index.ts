@@ -12,6 +12,13 @@ Deno.serve(async (request) => {
       return json(await external(`https://dapi.kakao.com/v2/routing/publictraffic?${query}`, { Authorization: `KakaoAK ${kakaoKey}` }))
     }
     if (action === 'kakao-place') return json(await external(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(params.query)}`, { Authorization: `KakaoAK ${kakaoKey}` }))
+    if (action === 'kakao-nearby') {
+      const base = new URLSearchParams({ x: String(params.longitude), y: String(params.latitude), radius: String(Math.min(Number(params.radius) || 350, 1000)), size: '5', sort: 'distance' })
+      const categories = ['SW8', 'CS2', 'CE7', 'FD6']
+      const results = await Promise.all(categories.map((category) => external(`https://dapi.kakao.com/v2/local/search/category.json?${base}&category_group_code=${category}`, { Authorization: `KakaoAK ${kakaoKey}` })))
+      const documents = results.flatMap((result) => result.documents || []).filter((place, index, all) => all.findIndex((item) => item.id === place.id) === index).sort((a, b) => Number(a.distance || Infinity) - Number(b.distance || Infinity))
+      return json({ documents })
+    }
     if (action === 'kakao-reverse') return json(await external(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${params.longitude}&y=${params.latitude}`, { Authorization: `KakaoAK ${kakaoKey}` }))
     if (action === 'weather') {
       const query = new URLSearchParams({ serviceKey: Deno.env.get('KMA_SERVICE_KEY') || '', pageNo: '1', numOfRows: '1000', dataType: 'JSON', base_date: params.baseDate, base_time: params.baseTime, nx: params.nx, ny: params.ny })
