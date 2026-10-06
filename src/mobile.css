@@ -83,6 +83,9 @@
   .map-side-panel .map-search-heading p { font-size: .82rem; line-height: 1.45; }
   .map-side-panel .eyebrow { font-size: .72rem; }
   .map-side-panel .route-form { gap: 13px; margin-top: 16px; }
+  .map-side-panel .route-form,
+  .map-side-panel .route-form > * { width: 100%; max-width: 100%; min-width: 0; }
+  .map-side-panel .route-form fieldset { min-inline-size: 0; }
   .map-side-panel .route-form .form-grid { gap: 11px; }
   .map-side-panel .route-form input,
   .map-side-panel .route-form select { min-height: 44px; padding: 10px 11px; font-size: 16px; }
