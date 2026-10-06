@@ -1,3 +1,4 @@
 .map-side-panel, .map-side-panel *, .route-form, .route-form * { box-sizing: border-box; }
-.map-side-panel { overflow: hidden; }
+.map-side-panel { width: min(430px, calc(100vw - 40px)); height: auto; bottom: auto; overflow: visible; }
 .map-side-panel .route-form { min-width: 0; }
+@media (max-width: 760px) { .map-side-panel { width: auto; bottom: auto; } }
