@@ -1,15 +1,18 @@
 /* Mobile map-first layout: the map remains useful while the route form behaves as a bottom sheet. */
 @media (max-width: 760px) {
   :root { font-size: 16px; }
+  html, body, #root { max-width: 100%; overflow-x: hidden; }
   body { min-width: 320px; background: #f4f6f8; }
 
-  .map-first-shell { min-height: 100svh; padding-bottom: env(safe-area-inset-bottom); }
+  .map-first-shell, .route-screen { width: 100%; overflow-x: clip; }
   .map-first-shell .map-card {
     position: fixed;
     inset: 0 0 auto;
     height: 49svh;
     min-height: 310px;
+    overflow: hidden;
   }
+  .map-canvas, .map-sdk-host { overflow: hidden; }
 
   .map-header {
     position: fixed;
