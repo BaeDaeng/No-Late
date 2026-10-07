@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { isRegisteredUser } from './accountService.js'
+import { toKoreanAuthError } from './accountService.js'
 
-describe('registered user detection', () => {
-  it('treats an email-backed session as a member', () => expect(isRegisteredUser({ email: 'member@example.com', is_anonymous: true })).toBe(true))
-  it('keeps anonymous and empty sessions as guests', () => { expect(isRegisteredUser({ is_anonymous: true })).toBe(false); expect(isRegisteredUser(null)).toBe(false) })
+describe('toKoreanAuthError', () => {
+  it('translates invalid login credentials', () => {
+    expect(toKoreanAuthError({ message: 'Invalid login credentials' })).toBe('이메일 또는 비밀번호가 올바르지 않습니다.')
+  })
+
+  it('translates a reused password warning', () => {
+    expect(toKoreanAuthError({ message: 'New password should be different from the old password.' })).toBe('새 비밀번호는 기존 비밀번호와 다르게 입력해 주세요.')
+  })
 })
