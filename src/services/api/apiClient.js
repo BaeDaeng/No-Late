@@ -27,7 +27,7 @@ export const apiClient = {
     const cached = getCachedRealtime(cacheKey)
     if (cached) return cached
     const data = await requestApi('kakao-nearby', { latitude, longitude, radius: 350 })
-    const places = (data.documents || []).map((document) => ({ id: document.id, name: document.place_name, address: document.road_address_name || document.address_name || '', latitude: Number(document.y), longitude: Number(document.x), category: document.category_group_name || '' }))
+    const places = (data.documents || []).map((document) => ({ id: document.id, name: document.place_name, address: document.road_address_name || document.address_name || '', latitude: Number(document.y), longitude: Number(document.x), category: document.category_group_name || '', phone: document.phone || '' }))
     cacheRealtime(cacheKey, places, 5 * 60 * 1000)
     return places
   },
