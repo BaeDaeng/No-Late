@@ -3,4 +3,26 @@
 .map-side-panel .route-form { min-width: 0; }
 .time-picker-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.appointment-toggle { flex: 0 0 auto; border: 1px solid #d7dee2; border-radius: 999px; padding: 5px 8px; background: #fff; color: #64707a; font: inherit; font-size: .72rem; cursor: pointer; }.appointment-toggle.active { border-color: #19a767; background: #eaf8ef; color: #168d59; font-weight: 700; }
 .map-side-panel { padding: 18px; }.map-side-panel .map-search-heading h1 { font-size: 1.5rem; }.map-side-panel .route-form { gap: 10px; margin-top: 14px; }.map-side-panel .route-form .form-grid { gap: 8px; }.map-side-panel .route-form input, .map-side-panel .route-form select { padding: 8px 10px; }.map-side-panel .location-tabs button { padding: 8px; }.map-side-panel .text-button { margin-top: 4px; }.map-side-panel .time-picker { gap: 4px; }.map-side-panel .compact-fields { gap: 8px; }.map-side-panel .field-hint { margin: 2px 0; }.map-side-panel .choices { gap: 4px; margin-top: 4px; }.map-side-panel .choice { padding: 5px 7px; font-size: .79rem; }.map-side-panel .actions { margin-top: 4px; }.map-side-panel .route-submit { padding: 10px 14px; }
-@media (max-width: 760px) { .map-side-panel { width: auto; bottom: auto; } }
+@media (max-width: 760px) {
+  /* Keep every form control inside the bottom sheet.  This is deliberately
+     here (after the desktop panel rules) so the content-box desktop width
+     can never win on a narrow screen. */
+  .map-side-panel {
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
+    overflow-x: clip;
+  }
+
+  .map-side-panel .route-form,
+  .map-side-panel .location-tabs,
+  .map-side-panel .actions,
+  .map-side-panel .route-submit {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .map-side-panel .location-tabs { min-width: 0; }
+  .map-side-panel .location-tabs button { min-width: 0; }
+}
