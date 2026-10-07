@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TransitNavigation } from '../components/TransitNavigation.jsx'
 import { apiClient } from '../services/api/apiClient.js'
 import subwayMapImage from '../assets/seoul-subway-map.png'
 
-const subwaySamples = ['강남', '서울', '홍대입구', '수원']
 const busSamples = ['740', '7016', '9000', 'M5107']
 const subwayLines = {
   '1호선': ['서울', '시청', '종각', '종로3가', '동대문', '청량리', '수원'],
@@ -27,23 +26,67 @@ function SubwayPage() {
   const [station, setStation] = useState('')
   const [arrivals, setArrivals] = useState([])
   const [status, setStatus] = useState('')
-  const [line, setLine] = useState('2호선')
   const [lineStations, setLineStations] = useState(subwayLines)
-  const [mapScale, setMapScale] = useState(0.72)
-  useEffect(() => { let active = true; apiClient.getSubwayLineStations().then((lines) => { const normalized = Object.entries(lines).reduce((result, [lineName, stations]) => { const match = lineName.match(/^0?([1-9])호선$/); if (match && stations.length) result[`${match[1]}호선`] = stations; return result }, {}); if (active && Object.keys(normalized).length) setLineStations((current) => ({ ...current, ...normalized })) }).catch(() => { /* 기본 노선도를 유지합니다. */ }); return () => { active = false } }, [])
+  const [mapScale, setMapScale] = useState(0.88)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    apiClient.getSubwayLineStations().then((lines) => {
+      const normalized = Object.entries(lines).reduce((result, [lineName, stations]) => {
+        const match = lineName.match(/^0?([1-9])호선$/)
+        if (match && stations.length) result[`${match[1]}호선`] = stations
+        return result
+      }, {})
+      if (active && Object.keys(normalized).length) setLineStations((current) => ({ ...current, ...normalized }))
+    }).catch(() => { /* 기본 검색 목록을 유지합니다. */ })
+    return () => { active = false }
+  }, [])
+
+  const suggestions = useMemo(() => {
+    const keyword = query.trim().replace(/역$/, '')
+    if (!keyword) return []
+    return [...new Set(Object.values(lineStations).flat().filter((name) => name.includes(keyword)))].slice(0, 8)
+  }, [lineStations, query])
+
   const search = async (nextQuery = query) => {
     const stationName = nextQuery.trim().replace(/역$/, '')
     if (!stationName) { setStatus('역 이름을 입력해 주세요.'); return }
-    const matchingLine = Object.entries(lineStations).find(([, stations]) => stations.includes(stationName))?.[0]
-    if (matchingLine) setLine(matchingLine)
-    try { setStatus('실시간 도착 정보를 불러오는 중…'); const result = await apiClient.getSubwayArrivals(stationName); setStation(stationName); setArrivals(result.arrivals); setStatus(result.arrivals.length ? '' : '현재 도착 정보가 없습니다. 운행 전후 시간대에는 정보가 없을 수 있어요.') } catch { setArrivals([]); setStatus('지하철 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.') }
+    setShowSuggestions(false)
+    setStation(stationName)
+    setArrivals([])
+    try {
+      setStatus('실시간 도착 정보를 불러오는 중…')
+      const result = await apiClient.getSubwayArrivals(stationName)
+      setArrivals(result.arrivals)
+      setStatus(result.arrivals.length ? '' : '현재 도착 정보가 없습니다. 운행 전후 시간대에는 정보가 없을 수 있어요.')
+    } catch {
+      setArrivals([])
+      setStatus('지하철 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    }
   }
+
   const selectStation = (stationName) => {
     setQuery(stationName)
     search(stationName)
   }
+
   const updateScale = (amount) => setMapScale((current) => Math.max(0.5, Math.min(1.8, Number((current + amount).toFixed(2)))))
-  return <section className="transit-page"><div className="transit-hero subway-hero"><span className="transit-kicker">수도권 지하철</span><h1>지하철 도착 정보</h1><p>역 이름을 검색하거나 아래 노선도와 노선 목록에서 역을 선택하세요.</p><TransitSearch value={query} onChange={setQuery} onSubmit={search} placeholder="예: 강남역" /><QuickSearch items={subwaySamples} onSelect={selectStation} /></div><section className="subway-map-panel" aria-label="서울 수도권 지하철 전체 노선도"><div className="subway-map-heading"><div><strong>전체 노선도</strong><span>확대해서 노선과 역 이름을 살펴보세요.</span></div><div className="subway-map-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(-0.1)} aria-label="노선도 축소">−</button><output>{Math.round(mapScale * 100)}%</output><button type="button" onClick={() => updateScale(0.1)} aria-label="노선도 확대">+</button><button className="map-reset" type="button" onClick={() => setMapScale(0.72)}>맞춤 보기</button></div></div><div className="subway-map-viewport"><img src={subwayMapImage} alt="서울 수도권 지하철 전체 노선도" style={{ width: `${mapScale * 100}%` }} draggable="false" /></div></section><section className="subway-schematic" aria-label="선택 노선의 역 목록"><div className="subway-schematic-heading"><div><strong>노선에서 역 선택</strong><span>역을 누르면 실시간 도착 정보를 확인합니다.</span></div><span className={`line-badge line-${line[0]}`}>{line}</span></div><div className="line-tabs">{Object.keys(lineStations).map((lineName) => <button className={line === lineName ? `active line-${lineName[0]}` : ''} type="button" key={lineName} onClick={() => setLine(lineName)}>{lineName}</button>)}</div><div className={`schematic-track line-${line[0]}`}>{(lineStations[line] || []).map((stationName) => <button type="button" key={stationName} onClick={() => selectStation(stationName)}><i /><span>{stationName}</span></button>)}</div></section><section className="transit-results" aria-live="polite">{station && <div className="transit-result-heading"><div><span className="transit-kicker">실시간 도착</span><h2>{station}역</h2></div><span>{arrivals.length}개 열차</span></div>}{arrivals.length > 0 && <div className="arrival-list">{arrivals.map((arrival, index) => <article className="subway-arrival-card" key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className={`line-dot line-${arrival.routeId.slice(-1)}`}>{subwayLineName(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{!station && <EmptyTransit title="역을 검색해 보세요" description="실시간 도착 열차와 방면 정보를 한눈에 보여 드려요." />}{status && <p className="transit-status" role="status">{status}</p>}</section></section>
+
+  return <section className="transit-page subway-page">
+    <div className="subway-search-bar">
+      <form className="subway-station-search" onSubmit={(event) => { event.preventDefault(); search() }}>
+        <input value={query} onChange={(event) => { setQuery(event.target.value); setShowSuggestions(true) }} onFocus={() => setShowSuggestions(true)} placeholder="역 이름 검색" aria-label="지하철역 검색" />
+        <button type="submit">검색</button>
+      </form>
+      {showSuggestions && suggestions.length > 0 && <div className="subway-suggestions" role="listbox">{suggestions.map((stationName) => <button key={stationName} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectStation(stationName)}>{stationName}역</button>)}</div>}
+    </div>
+    <section className="subway-map-stage" aria-label="서울 수도권 지하철 전체 노선도">
+      <div className="subway-map-canvas"><img src={subwayMapImage} alt="서울 수도권 지하철 전체 노선도" style={{ width: `${mapScale * 100}%` }} draggable="false" /></div>
+      <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.1)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.1)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(0.88)}>맞춤</button></div>
+      {(station || status) && <aside className="subway-station-sheet" aria-live="polite"><div className="subway-station-sheet-heading"><div><span>실시간 도착</span><strong>{station ? `${station}역` : '역 정보'}</strong></div><button type="button" onClick={() => { setStation(''); setArrivals([]); setStatus('') }} aria-label="역 정보 닫기">×</button></div>{arrivals.length > 0 && <div className="subway-sheet-arrivals">{arrivals.map((arrival, index) => <article key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className={`line-dot line-${arrival.routeId.slice(-1)}`}>{subwayLineName(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{status && <p className="subway-sheet-status">{status}</p>}</aside>}
+    </section>
+  </section>
 }
 
 function BusPage() {
