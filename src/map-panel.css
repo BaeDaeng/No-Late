@@ -1,6 +1,12 @@
 .map-side-panel, .map-side-panel *, .route-form, .route-form * { box-sizing: border-box; }
 .map-side-panel { width: min(430px, calc(100vw - 40px)); height: auto; bottom: auto; overflow: visible; }
-.map-side-panel .route-form { min-width: 0; }
+.map-side-panel .route-form { width: 100%; max-width: 100%; min-width: 0; }
+.map-side-panel .route-form .form-grid { grid-template-columns: minmax(0, 1fr); width: 100%; min-width: 0; max-width: 100%; }
+.map-side-panel .route-form .form-grid > div,
+.map-side-panel .route-form fieldset,
+.map-side-panel .route-form .actions { min-width: 0; max-width: 100%; }
+.map-side-panel .route-form .actions,
+.map-side-panel .route-form .route-submit { width: 100%; max-width: 100%; }
 .autocomplete { position: relative; min-width: 0; }
 .suggestion-accordion { margin-top: 7px; overflow: hidden; border: 1px solid #dfe6e2; border-radius: 10px; background: #fff; box-shadow: 0 7px 16px rgb(15 23 42 / 9%); }
 .suggestion-summary { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 0; border-bottom: 1px solid #edf1ef; padding: 8px 10px; background: #f7fbf8; color: #287752; font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer; }
