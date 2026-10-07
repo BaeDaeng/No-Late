@@ -10,6 +10,7 @@ async function requestApi(action, params, signal) { if (!supabase) throw new Err
 
 function getCachedRealtime(key) { try { const value = JSON.parse(sessionStorage.getItem(`${realtimeCachePrefix}${key}`)); return value && value.expiresAt > Date.now() ? value.data : null } catch { return null } }
 function cacheRealtime(key, data, ttlMs) { try { sessionStorage.setItem(`${realtimeCachePrefix}${key}`, JSON.stringify({ data, expiresAt: Date.now() + ttlMs })) } catch { /* sessionStorage is an optimization only */ } }
+function asList(value) { return Array.isArray(value) ? value : value ? [value] : [] }
 
 export const apiClient = {
   async searchPlaces(query, signal) {
@@ -74,5 +75,22 @@ export const apiClient = {
     const data = await requestApi('bus', { routeId })
     cacheRealtime(cacheKey, data, REALTIME_LIMITS.transitCacheTtlMs)
     return { data, fromCache: false }
+  },
+
+  async searchBusRoutes(query) {
+    const data = await requestApi('bus-routes', { query })
+    return asList(data.msgBody?.itemList).map((item) => ({ id: String(item.busRouteId), number: item.busRouteNm || '', startName: item.stStationNm || '', endName: item.edStationNm || '', intervalMinutes: Number(item.term) || null, type: String(item.routeType || '') }))
+  },
+
+  async getBusRouteStops(routeId) {
+    const data = await requestApi('bus-route-stops', { routeId })
+    return asList(data.msgBody?.itemList).map((item) => ({ id: String(item.station || item.stationId || item.arsId || item.seq), arsId: item.arsId || '', name: item.stationNm || '', order: Number(item.seq) || 1, latitude: Number(item.gpsY) || null, longitude: Number(item.gpsX) || null }))
+  },
+
+  async getBusArrival({ stationId, routeId, order }) {
+    const data = await requestApi('bus-arrival', { stationId, routeId, order })
+    const item = asList(data.msgBody?.itemList)[0]
+    if (!item) return null
+    return { first: item.arrmsg1 || '', second: item.arrmsg2 || '', firstSeconds: Number(item.arrmsgSec1) || null, secondSeconds: Number(item.arrmsgSec2) || null }
   },
 }

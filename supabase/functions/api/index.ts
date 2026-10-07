@@ -6,7 +6,7 @@ Deno.serve(async (request) => {
   try {
     const { action, ...params } = await request.json()
     const kakaoKey = Deno.env.get('KAKAO_REST_API_KEY')
-    const external = async (url: string, headers: HeadersInit = {}) => { const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!response.ok) throw new Error(`외부 API 오류 (${response.status})`); return response.json() }
+    const external = async (url: string, headers: HeadersInit = {}) => { const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!response.ok) { if (response.status === 401 && url.includes('ws.bus.go.kr')) throw new Error('서울 버스 노선·도착 정보 API 사용 권한이 필요합니다.'); throw new Error(`외부 API 오류 (${response.status})`) }; return response.json() }
     if (action === 'kakao-public-transit') {
       const query = new URLSearchParams(params).toString()
       return json(await external(`https://dapi.kakao.com/v2/routing/publictraffic?${query}`, { Authorization: `KakaoAK ${kakaoKey}` }))
@@ -25,7 +25,10 @@ Deno.serve(async (request) => {
       return json(await external(`https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?${query}`))
     }
     if (action === 'subway') return json(await external(`http://swopenAPI.seoul.go.kr/api/subway/${Deno.env.get('SEOUL_SUBWAY_API_KEY')}/json/realtimeStationArrival/0/10/${encodeURIComponent(params.stationName)}`))
-    if (action === 'bus') return json(await external(`http://ws.bus.go.kr/api/rest/buspos/getBusPosByRtid?${new URLSearchParams({ busRouteId: params.routeId, serviceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
+    if (action === 'bus') return json(await external(`http://ws.bus.go.kr/api/rest/buspos/getBusPosByRtid?${new URLSearchParams({ busRouteId: params.routeId, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
+    if (action === 'bus-routes') return json(await external(`http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList?${new URLSearchParams({ strSrch: params.query, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
+    if (action === 'bus-route-stops') return json(await external(`http://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute?${new URLSearchParams({ busRouteId: params.routeId, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
+    if (action === 'bus-arrival') return json(await external(`http://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute?${new URLSearchParams({ stId: params.stationId, busRouteId: params.routeId, ord: String(params.order || 1), ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
     return json({ error: '지원하지 않는 요청입니다.' }, 400)
   } catch (error) { return json({ error: error instanceof Error ? error.message : '요청 처리 실패' }, 502) }
 })
