@@ -20,4 +20,10 @@ describe('trip prediction', () => {
     const result = calculateTripPrediction({ route, tripRequest, now: new Date('2026-10-07T00:55:00.000Z') })
     expect(result.riskScore).toBe(95)
   })
+  it('returns an estimate without a deadline when no appointment exists', () => {
+    const result = calculateTripPrediction({ route, tripRequest: { ...tripRequest, appointmentAt: null }, now })
+    expect(result.leaveByTime).toBeNull()
+    expect(result.minutesUntilLeave).toBeNull()
+    expect(result.riskScore).toBe(0)
+  })
 })

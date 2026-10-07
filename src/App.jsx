@@ -25,8 +25,8 @@ function App() {
   }, [])
   const navigate = (nextPath) => { window.history.pushState({}, '', nextPath); setPath(nextPath) }
   const updateProfile = async (patch) => { const next = await saveProfile(user, patch); setProfile(next); return next }
-  const openSavedPlacePair = ({ origin, destination, appointmentTime }) => {
-    const request = createTripRequest({ origin, destination, appointmentTime, currentFloor: '1', heightCm: String(profile.heightCm || ''), urgency: 'normal' })
+  const openSavedPlacePair = ({ origin, destination, appointmentTime, withoutAppointment = false }) => {
+    const request = createTripRequest({ origin, destination, appointmentTime, withoutAppointment, currentFloor: '1', heightCm: String(profile.heightCm || ''), urgency: 'normal' })
     saveTripRequest(request)
     navigate('/result')
   }

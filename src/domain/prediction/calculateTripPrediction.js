@@ -15,10 +15,10 @@ export function calculateTripPrediction({ route, tripRequest, weather = null, ar
   const baseMinutes = ceil(route.totalMinutes || 0)
   const optimisticMinutes = baseMinutes + weatherMinutes + extraWaitMinutes + signalMinutes
   const safeMinutes = Math.max(optimisticMinutes, optimisticMinutes + uncertaintyMinutes)
-  const appointment = new Date(tripRequest.appointmentAt)
-  const leaveBy = new Date(appointment.getTime() - safeMinutes * 60_000)
-  const minutesUntilLeave = Math.floor((leaveBy.getTime() - now.getTime()) / 60_000)
-  const riskScore = minutesUntilLeave < 0 ? 95 : minutesUntilLeave <= 5 ? 78 : minutesUntilLeave <= 15 ? 48 : 18
+  const appointment = tripRequest.appointmentAt ? new Date(tripRequest.appointmentAt) : null
+  const leaveBy = appointment ? new Date(appointment.getTime() - safeMinutes * 60_000) : null
+  const minutesUntilLeave = leaveBy ? Math.floor((leaveBy.getTime() - now.getTime()) / 60_000) : null
+  const riskScore = minutesUntilLeave === null ? 0 : minutesUntilLeave < 0 ? 95 : minutesUntilLeave <= 5 ? 78 : minutesUntilLeave <= 15 ? 48 : 18
   const confidence = usesFallbackData ? 'low' : (route.transferCount || 0) >= 2 ? 'medium' : 'high'
   const adverseWeather = ['rain', 'snow', 'mixed'].includes(weather?.precipitationType)
   const runningSuggestionMinutes = tripRequest.urgency === 'hurry' && !adverseWeather && confidence !== 'low' ? Math.floor((route.totalWalkMinutes || 0) * weights.hurryWalkingReduction) : 0
@@ -29,5 +29,5 @@ export function calculateTripPrediction({ route, tripRequest, weather = null, ar
     ...(signalMinutes ? [{ label: '신호·횡단 대기', minutes: signalMinutes, reason: '도보 구간 수 기준' }] : []),
     ...(uncertaintyMinutes ? [{ label: '안전 여유', minutes: uncertaintyMinutes, reason: usesFallbackData ? '일부 실시간 정보 미수신' : '환승·도보 불확실성' }] : []),
   ]
-  return { baseMinutes, optimisticMinutes, safeMinutes, leaveByTime: leaveBy.toISOString(), optimisticArrivalTime: plusMinutes(now, optimisticMinutes), safeArrivalTime: plusMinutes(now, safeMinutes), riskScore, adjustmentBreakdown, usedFallbackData: usesFallbackData, confidence, runningSuggestionMinutes, minutesUntilLeave }
+  return { baseMinutes, optimisticMinutes, safeMinutes, leaveByTime: leaveBy?.toISOString() || null, optimisticArrivalTime: plusMinutes(now, optimisticMinutes), safeArrivalTime: plusMinutes(now, safeMinutes), riskScore, adjustmentBreakdown, usedFallbackData: usesFallbackData, confidence, runningSuggestionMinutes, minutesUntilLeave }
 }
