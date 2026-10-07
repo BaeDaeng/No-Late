@@ -6,14 +6,14 @@ import { cacheRoute, getCachedRoute } from './requestCache.js'
 
 const realtimeCachePrefix = 'no-late:realtime:'
 
-async function requestApi(action, params) { if (!supabase) throw new Error('Supabase 연결 정보가 설정되지 않았습니다.'); await ensureAnonymousSession(); const { data, error } = await supabase.functions.invoke('api', { body: { action, ...params } }); if (error || data?.error) throw new Error(data?.error || error.message); return data }
+async function requestApi(action, params, signal) { if (!supabase) throw new Error('Supabase 연결 정보가 설정되지 않았습니다.'); await ensureAnonymousSession(); const { data, error } = await supabase.functions.invoke('api', { body: { action, ...params }, signal }); if (error || data?.error) throw new Error(data?.error || error.message); return data }
 
 function getCachedRealtime(key) { try { const value = JSON.parse(sessionStorage.getItem(`${realtimeCachePrefix}${key}`)); return value && value.expiresAt > Date.now() ? value.data : null } catch { return null } }
 function cacheRealtime(key, data, ttlMs) { try { sessionStorage.setItem(`${realtimeCachePrefix}${key}`, JSON.stringify({ data, expiresAt: Date.now() + ttlMs })) } catch { /* sessionStorage is an optimization only */ } }
 
 export const apiClient = {
   async searchPlaces(query, signal) {
-    return requestApi('kakao-place', { query, signal })
+    return requestApi('kakao-place', { query }, signal)
   },
 
   async reverseGeocode({ latitude, longitude }, signal) {

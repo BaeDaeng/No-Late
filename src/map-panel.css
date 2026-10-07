@@ -1,6 +1,15 @@
 .map-side-panel, .map-side-panel *, .route-form, .route-form * { box-sizing: border-box; }
 .map-side-panel { width: min(430px, calc(100vw - 40px)); height: auto; bottom: auto; overflow: visible; }
 .map-side-panel .route-form { min-width: 0; }
+.autocomplete { position: relative; min-width: 0; }
+.suggestion-accordion { margin-top: 7px; overflow: hidden; border: 1px solid #dfe6e2; border-radius: 10px; background: #fff; box-shadow: 0 7px 16px rgb(15 23 42 / 9%); }
+.suggestion-summary { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 0; border-bottom: 1px solid #edf1ef; padding: 8px 10px; background: #f7fbf8; color: #287752; font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer; }
+.suggestions { display: grid; max-height: 184px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.suggestions li + li { border-top: 1px solid #edf0ee; }
+.suggestions button { display: grid; width: 100%; gap: 2px; border: 0; padding: 9px 10px; background: #fff; color: #26302b; font: inherit; text-align: left; cursor: pointer; }
+.suggestions button:hover, .suggestions button.active { background: #edf9f2; }
+.suggestions strong { overflow: hidden; font-size: .83rem; text-overflow: ellipsis; white-space: nowrap; }
+.suggestions span { overflow: hidden; color: #78817c; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
 .time-picker-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.appointment-toggle { flex: 0 0 auto; border: 1px solid #d7dee2; border-radius: 999px; padding: 5px 8px; background: #fff; color: #64707a; font: inherit; font-size: .72rem; cursor: pointer; }.appointment-toggle.active { border-color: #19a767; background: #eaf8ef; color: #168d59; font-weight: 700; }
 .map-side-panel { padding: 18px; }.map-side-panel .map-search-heading h1 { font-size: 1.5rem; }.map-side-panel .route-form { gap: 10px; margin-top: 14px; }.map-side-panel .route-form .form-grid { gap: 8px; }.map-side-panel .route-form input, .map-side-panel .route-form select { padding: 8px 10px; }.map-side-panel .location-tabs button { padding: 8px; }.map-side-panel .text-button { margin-top: 4px; }.map-side-panel .time-picker { gap: 4px; }.map-side-panel .compact-fields { gap: 8px; }.map-side-panel .field-hint { margin: 2px 0; }.map-side-panel .choices { gap: 4px; margin-top: 4px; }.map-side-panel .choice { padding: 5px 7px; font-size: .79rem; }.map-side-panel .actions { margin-top: 4px; }.map-side-panel .route-submit { padding: 10px 14px; }
 @media (max-width: 760px) {

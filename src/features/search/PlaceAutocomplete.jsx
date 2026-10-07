@@ -9,6 +9,7 @@ export function PlaceAutocomplete({ label, selected, onSelect, error }) {
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('')
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [expanded, setExpanded] = useState(true)
   useEffect(() => {
     const timer = setTimeout(() => setQuery(selected?.name || ''), 0)
     return () => clearTimeout(timer)
@@ -21,6 +22,7 @@ export function PlaceAutocomplete({ label, selected, onSelect, error }) {
         setStatus('검색 중…')
         const data = await apiClient.searchPlaces(query.trim(), controller.signal)
         setItems((data.documents || []).map(toPlace))
+        setExpanded(true)
         setStatus(data.documents?.length ? '' : '검색 결과가 없습니다.')
       } catch (requestError) {
         if (requestError.name !== 'AbortError') { setItems([]); setStatus('장소 검색에 실패했습니다. 다시 입력해 주세요.') }
@@ -29,7 +31,7 @@ export function PlaceAutocomplete({ label, selected, onSelect, error }) {
     return () => { clearTimeout(timer); controller.abort() }
   }, [query, selected?.name])
 
-  const choose = (place) => { onSelect(place); setQuery(place.name); setItems([]); setStatus('') }
+  const choose = (place) => { onSelect(place); setQuery(place.name); setItems([]); setStatus(''); setExpanded(false) }
   const onKeyDown = (event) => {
     if (!items.length) return
     if (event.key === 'ArrowDown') { event.preventDefault(); setActiveIndex((index) => Math.min(index + 1, items.length - 1)) }
@@ -37,5 +39,5 @@ export function PlaceAutocomplete({ label, selected, onSelect, error }) {
     if (event.key === 'Enter' && activeIndex >= 0) { event.preventDefault(); choose(items[activeIndex]) }
     if (event.key === 'Escape') { setItems([]); setActiveIndex(-1) }
   }
-  return <div className="autocomplete"><label htmlFor={inputId}>{label}</label><input id={inputId} value={query} onChange={(event) => { setQuery(event.target.value); onSelect(null); setActiveIndex(-1); setItems([]); setStatus('') }} onKeyDown={onKeyDown} placeholder="두 글자 이상 입력" autoComplete="off" aria-autocomplete="list" aria-expanded={items.length > 0} />{items.length > 0 && <ul className="suggestions" role="listbox">{items.map((place, index) => <li key={place.id} role="option" aria-selected={activeIndex === index}><button type="button" className={activeIndex === index ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(place)}><strong>{place.name}</strong><span>{place.address}</span></button></li>)}</ul>}{status && <p className="field-hint" role="status">{status}</p>}{error && <p className="field-error" role="alert">{error}</p>}</div>
+  return <div className="autocomplete"><label htmlFor={inputId}>{label}</label><input id={inputId} value={query} onFocus={() => items.length && setExpanded(true)} onChange={(event) => { setQuery(event.target.value); onSelect(null); setActiveIndex(-1); setItems([]); setStatus(''); setExpanded(true) }} onKeyDown={onKeyDown} placeholder="두 글자 이상 입력" autoComplete="off" aria-autocomplete="list" aria-expanded={items.length > 0 && expanded} aria-controls={`${inputId}-suggestions`} />{items.length > 0 && <section className="suggestion-accordion"><button className="suggestion-summary" type="button" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded} aria-controls={`${inputId}-suggestions`}><span>유사한 장소 {items.length}곳</span><span aria-hidden="true">{expanded ? '⌃' : '⌄'}</span></button>{expanded && <ul id={`${inputId}-suggestions`} className="suggestions" role="listbox">{items.map((place, index) => <li key={place.id} role="option" aria-selected={activeIndex === index}><button type="button" className={activeIndex === index ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(place)}><strong>{place.name}</strong><span>{place.address}</span></button></li>)}</ul>}</section>}{status && <p className="field-hint" role="status">{status}</p>}{error && <p className="field-error" role="alert">{error}</p>}</div>
 }
