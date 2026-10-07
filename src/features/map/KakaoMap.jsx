@@ -10,7 +10,12 @@ function loadKakaoMaps(key) {
   if (window.kakao?.maps) return Promise.resolve(window.kakao)
   return new Promise((resolve, reject) => { const existing = document.querySelector('script[data-kakao-map-sdk]'); if (existing) { existing.addEventListener('load', () => resolve(window.kakao), { once: true }); existing.addEventListener('error', () => reject(new Error('카카오 지도 SDK를 불러오지 못했습니다.')), { once: true }); return }; const script = document.createElement('script'); script.src = sdkUrl(key); script.async = true; script.dataset.kakaoMapSdk = 'true'; script.onload = () => resolve(window.kakao); script.onerror = () => reject(new Error('카카오 지도 SDK를 불러오지 못했습니다.')); document.head.append(script) })
 }
-function routePoints(route, origin, destination) { const points = [origin, ...(route?.segments || []).flatMap((segment) => segment.pathPoints?.length ? segment.pathPoints : [segment.startCoordinates, segment.endCoordinates]), destination].filter(Boolean); return points.filter((point, index) => index === 0 || point.latitude !== points[index - 1].latitude || point.longitude !== points[index - 1].longitude) }
+function validPoint(point) { return Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude) }
+function uniquePoints(points) { return points.filter(validPoint).filter((point, index, all) => index === 0 || point.latitude !== all[index - 1].latitude || point.longitude !== all[index - 1].longitude) }
+function segmentPoints(segment, index, segments, origin, destination) { const path = uniquePoints(segment.pathPoints || []); if (path.length > 1) return path; const previous = segments[index - 1]; const next = segments[index + 1]; return uniquePoints([segment.startCoordinates, path[0], index === 0 ? origin : previous?.endCoordinates, segment.endCoordinates, path.at(-1), index === segments.length - 1 ? destination : next?.startCoordinates]) }
+function subwayColor(label) { const line = String(label).match(/([1-9])호선/); return ({ 1: '#1f4f99', 2: '#22a35a', 3: '#ef7d22', 4: '#2d9ccc', 5: '#8936a6', 6: '#a65e2e', 7: '#6678c9', 8: '#df4964', 9: '#b59a32' })[line?.[1]] || '#516fc4' }
+function busColor(label) { const value = String(label); const number = value.match(/[0-9]+/)?.[0] || ''; if (/^[MN]/i.test(value)) return '#d8493f'; if (number.length >= 4) return '#3b9b5c'; if (number.startsWith('8')) return '#c79016'; return '#2d6ecb' }
+function segmentStyle(segment) { if (segment.type === 'walk') return { color: '#6c7680', weight: 5, opacity: .8, style: 'shortdash' }; if (segment.type === 'subway') return { color: subwayColor(segment.label), weight: 7, opacity: .92, style: 'solid' }; return { color: busColor(segment.label), weight: 7, opacity: .92, style: 'solid' } }
 
 export function KakaoMap({ route, origin, destination, routeMode = false, selectionTarget = 'origin', onSelectPlace }) {
   const mapElement = useRef(null)
@@ -62,11 +67,13 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
     if (!mapInstance || !origin || !destination || !window.kakao?.maps) return
     overlays.current.forEach((overlay) => overlay.setMap(null))
     const kakao = window.kakao
-    const positions = routePoints(route, origin, destination).map((point) => new kakao.maps.LatLng(point.latitude, point.longitude))
+    const segments = route?.segments || []
+    const allPoints = uniquePoints([origin, ...segments.flatMap((segment, index) => segmentPoints(segment, index, segments, origin, destination)), destination])
+    const positions = allPoints.map((point) => new kakao.maps.LatLng(point.latitude, point.longitude))
     const bounds = new kakao.maps.LatLngBounds(); positions.forEach((position) => bounds.extend(position))
-    const path = new kakao.maps.Polyline({ path: positions, strokeWeight: 6, strokeColor: '#15c', strokeOpacity: .88, strokeStyle: 'solid' }); path.setMap(mapInstance)
+    const paths = segments.map((segment, index) => { const points = segmentPoints(segment, index, segments, origin, destination).map((point) => new kakao.maps.LatLng(point.latitude, point.longitude)); if (points.length < 2) return null; const style = segmentStyle(segment); const path = new kakao.maps.Polyline({ path: points, strokeWeight: style.weight, strokeColor: style.color, strokeOpacity: style.opacity, strokeStyle: style.style }); path.setMap(mapInstance); return path }).filter(Boolean)
     const markers = [new kakao.maps.Marker({ position: positions[0], map: mapInstance, title: `출발 · ${origin.name}` }), new kakao.maps.Marker({ position: positions.at(-1), map: mapInstance, title: `도착 · ${destination.name}` })]
-    overlays.current = [path, ...markers]; mapInstance.setBounds(bounds, 56, 56, 56, 56)
+    overlays.current = [...paths, ...markers]; mapInstance.setBounds(bounds, 56, 56, 56, 56)
   }, [mapInstance, route, origin, destination])
 
   const moveZoom = (amount) => { if (mapInstance) mapInstance.setLevel(Math.max(1, Math.min(14, mapInstance.getLevel() + amount))) }
