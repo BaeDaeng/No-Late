@@ -67,6 +67,15 @@ export const apiClient = {
     return { arrivals, fromCache: false }
   },
 
+  async getSubwayMap() {
+    const cacheKey = 'subway-map'
+    const cached = getCachedRealtime(cacheKey)
+    if (cached) return cached
+    const map = await requestApi('subway-map', {})
+    cacheRealtime(cacheKey, map, 24 * 60 * 60 * 1000)
+    return map
+  },
+
   async getSubwayLineStations() {
     const cacheKey = 'subway-line-stations'
     const cached = getCachedRealtime(cacheKey)

@@ -1,20 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TransitNavigation } from '../components/TransitNavigation.jsx'
 import { apiClient } from '../services/api/apiClient.js'
-import subwayMapImage from '../assets/seoul-subway-map.png'
 
 const busSamples = ['740', '7016', '9000', 'M5107']
-const subwayLines = {
-  '1호선': ['서울', '시청', '종각', '종로3가', '동대문', '청량리', '수원'],
-  '2호선': ['홍대입구', '신촌', '시청', '을지로입구', '강남', '잠실', '건대입구'],
-  '3호선': ['대화', '연신내', '종로3가', '고속터미널', '양재', '수서'],
-  '4호선': ['당고개', '서울역', '사당', '과천', '안산', '오이도'],
-  '5호선': ['김포공항', '여의도', '광화문', '왕십리', '상일동'],
-  '6호선': ['응암', '연신내', '공덕', '이태원', '태릉입구'],
-  '7호선': ['장암', '건대입구', '고속터미널', '가산디지털단지', '부평구청'],
-  '8호선': ['암사', '잠실', '복정', '모란'],
-  '9호선': ['개화', '김포공항', '여의도', '고속터미널', '종합운동장'],
-}
 
 export function TransitInfoPage({ type, onNavigate }) {
   const isSubway = type === 'subway'
@@ -26,28 +14,28 @@ function SubwayPage() {
   const [station, setStation] = useState('')
   const [arrivals, setArrivals] = useState([])
   const [status, setStatus] = useState('')
-  const [lineStations, setLineStations] = useState(subwayLines)
+  const [map, setMap] = useState(null)
+  const [mapStatus, setMapStatus] = useState('공식 노선도를 준비하는 중…')
   const [mapScale, setMapScale] = useState(0.88)
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   useEffect(() => {
     let active = true
-    apiClient.getSubwayLineStations().then((lines) => {
-      const normalized = Object.entries(lines).reduce((result, [lineName, stations]) => {
-        const match = lineName.match(/^0?([1-9])호선$/)
-        if (match && stations.length) result[`${match[1]}호선`] = stations
-        return result
-      }, {})
-      if (active && Object.keys(normalized).length) setLineStations((current) => ({ ...current, ...normalized }))
-    }).catch(() => { /* 기본 검색 목록을 유지합니다. */ })
+    apiClient.getSubwayMap().then((nextMap) => {
+      if (!active) return
+      setMap(nextMap)
+      setMapStatus('')
+    }).catch(() => {
+      if (active) setMapStatus('공식 노선도를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    })
     return () => { active = false }
   }, [])
 
   const suggestions = useMemo(() => {
     const keyword = query.trim().replace(/역$/, '')
     if (!keyword) return []
-    return [...new Set(Object.values(lineStations).flat().filter((name) => name.includes(keyword)))].slice(0, 8)
-  }, [lineStations, query])
+    return [...new Set((map?.lines || []).flatMap((line) => line.stations.map((item) => item.name)).filter((name) => name.includes(keyword)))].slice(0, 8)
+  }, [map, query])
 
   const search = async (nextQuery = query) => {
     const stationName = nextQuery.trim().replace(/역$/, '')
@@ -82,11 +70,27 @@ function SubwayPage() {
       {showSuggestions && suggestions.length > 0 && <div className="subway-suggestions" role="listbox">{suggestions.map((stationName) => <button key={stationName} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectStation(stationName)}>{stationName}역</button>)}</div>}
     </div>
     <section className="subway-map-stage" aria-label="서울 수도권 지하철 전체 노선도">
-      <div className="subway-map-canvas"><img src={subwayMapImage} alt="서울 수도권 지하철 전체 노선도" style={{ width: `${mapScale * 100}%` }} draggable="false" /></div>
+      <div className="subway-map-canvas">{map ? <InteractiveSubwayMap map={map} scale={mapScale} onSelect={selectStation} /> : <p className="subway-map-loading">{mapStatus}</p>}</div>
       <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.1)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.1)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(0.88)}>맞춤</button></div>
       {(station || status) && <aside className="subway-station-sheet" aria-live="polite"><div className="subway-station-sheet-heading"><div><span>실시간 도착</span><strong>{station ? `${station}역` : '역 정보'}</strong></div><button type="button" onClick={() => { setStation(''); setArrivals([]); setStatus('') }} aria-label="역 정보 닫기">×</button></div>{arrivals.length > 0 && <div className="subway-sheet-arrivals">{arrivals.map((arrival, index) => <article key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className={`line-dot line-${arrival.routeId.slice(-1)}`}>{subwayLineName(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{status && <p className="subway-sheet-status">{status}</p>}</aside>}
     </section>
   </section>
+}
+
+function InteractiveSubwayMap({ map, scale, onSelect }) {
+  return <svg className="interactive-subway-map" viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: `${scale * 100}%` }} role="group" aria-label="서울 수도권 지하철 노선도. 역을 누르면 도착 정보를 확인합니다.">{map.lines.map((line) => <g key={line.key} className="subway-map-line"><title>{line.label}</title>{line.segments.map((segment, index) => <polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={line.color} strokeWidth={line.width} strokeLinecap="round" strokeLinejoin="round" />)}{line.stations.map((item) => { const label = stationLabel(item); return <g className={`subway-map-station${item.interchange ? ' interchange' : ''}`} key={`${line.key}-${item.id}`} role="button" tabIndex="0" aria-label={`${item.name}역 도착 정보 보기`} onClick={() => onSelect(item.name)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(item.name) } }}><circle className="station-hit-area" cx={item.x} cy={item.y} r="5" /><circle cx={item.x} cy={item.y} r={item.interchange ? '2.5' : '1.8'} /><text x={item.x + label.x} y={item.y + label.y} textAnchor={label.anchor}>{item.name}</text></g> })}</g>)}</svg>
+}
+
+function stationLabel({ labelPos }) {
+  const position = String(labelPos || 'E').toUpperCase()
+  if (position === 'N') return { x: 0, y: -3.6, anchor: 'middle' }
+  if (position === 'S') return { x: 0, y: 5.6, anchor: 'middle' }
+  if (position === 'W') return { x: -3.2, y: 1.1, anchor: 'end' }
+  if (position === 'NE') return { x: 2.8, y: -2.2, anchor: 'start' }
+  if (position === 'NW') return { x: -2.8, y: -2.2, anchor: 'end' }
+  if (position === 'SE') return { x: 2.8, y: 4.2, anchor: 'start' }
+  if (position === 'SW') return { x: -2.8, y: 4.2, anchor: 'end' }
+  return { x: 3.2, y: 1.1, anchor: 'start' }
 }
 
 function BusPage() {
