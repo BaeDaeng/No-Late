@@ -148,3 +148,16 @@
   .map-side-panel .choice { justify-content: center; padding: 7px 4px; font-size: .71rem; }
   .result-actions { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 760px) {
+  .map-first-shell { min-height: 100svh; overflow: hidden; }
+  .map-first-shell .map-card { position: fixed; inset: 0; height: 100svh; }
+  .map-side-panel.mobile-sheet { position: fixed; inset: auto 0 0; z-index: 6; width: 100%; max-width: 100%; min-height: 0; margin: 0; padding: 31px 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; transition: height .22s ease; overscroll-behavior: contain; }
+  .map-side-panel.mobile-sheet.peek { height: 78px; overflow: hidden; }
+  .map-side-panel.mobile-sheet.half { height: 54svh; overflow-y: auto; }
+  .map-side-panel.mobile-sheet.full { height: calc(100svh - env(safe-area-inset-top)); overflow-y: auto; }
+  .sheet-handle { position: absolute; top: 7px; left: 50%; display: grid; gap: 3px; width: 150px; border: 0; padding: 0; background: transparent; color: #6c7770; font: inherit; font-size: .68rem; cursor: grab; transform: translateX(-50%); touch-action: none; }
+  .sheet-handle i { width: 38px; height: 4px; justify-self: center; border-radius: 999px; background: #b8c2bc; }
+  .map-side-panel.mobile-sheet.peek .map-search-heading, .map-side-panel.mobile-sheet.peek .route-form { display: none; }
+  .map-side-panel.mobile-sheet.full .sheet-handle { position: sticky; top: -24px; z-index: 2; margin-bottom: 8px; }
+}

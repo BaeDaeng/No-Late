@@ -7,6 +7,12 @@ Deno.serve(async (request) => {
     const { action, ...params } = await request.json()
     const kakaoKey = Deno.env.get('KAKAO_REST_API_KEY')
     const external = async (url: string, headers: HeadersInit = {}) => { const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!response.ok) { if (response.status === 401 && url.includes('ws.bus.go.kr')) throw new Error('서울 버스 노선·도착 정보 API 사용 권한이 필요합니다.'); throw new Error(`외부 API 오류 (${response.status})`) }; return response.json() }
+    if (action === 'delete-account') {
+      const origin = new URL(request.url).origin
+      const response = await fetch(`${origin}/auth/v1/user`, { method: 'DELETE', headers: { apikey: request.headers.get('apikey') || '', Authorization: request.headers.get('Authorization') || '' } })
+      if (!response.ok) throw new Error('회원 탈퇴를 처리하지 못했습니다.')
+      return json({ ok: true })
+    }
     if (action === 'kakao-public-transit') {
       const query = new URLSearchParams(params).toString()
       return json(await external(`https://dapi.kakao.com/v2/routing/publictraffic?${query}`, { Authorization: `KakaoAK ${kakaoKey}` }))

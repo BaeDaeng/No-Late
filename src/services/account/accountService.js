@@ -1,6 +1,6 @@
 import { ensureAnonymousSession, supabase } from '../../supabase.js'
 
-const emptyProfile = Object.freeze({ heightCm: null, home: null, work: null })
+const emptyProfile = Object.freeze({ heightCm: null, home: null, work: null, favoriteBuses: [] })
 
 export function toKoreanAuthError(error) {
   const message = String(error?.message || '')
@@ -20,17 +20,31 @@ export function isRegisteredUser(user) {
 }
 
 export async function registerWithEmail({ email, password, heightCm }) {
-  const session = await ensureAnonymousSession()
-  const { data, error } = await supabase.auth.updateUser({ email, password })
+  await supabase.auth.signOut({ scope: 'local' })
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { heightCm: Number(heightCm) } } })
   if (error) throw new Error(toKoreanAuthError(error))
-  await saveProfile(data.user || session.user, { heightCm: Number(heightCm) })
-  return data.user || session.user
+  if (!data.user || data.user.identities?.length === 0) throw new Error('이미 가입된 이메일입니다. 로그인해 주세요.')
+  return data.user
 }
 
 export async function signInWithEmail({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw new Error(toKoreanAuthError(error))
+  const heightCm = Number(data.user?.user_metadata?.heightCm)
+  if (Number.isFinite(heightCm) && heightCm > 0) { try { await saveProfile(data.user, { heightCm }) } catch { /* 로그인 자체는 유지합니다. */ } }
   return data.user
+}
+
+export async function changePassword(password) {
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) throw new Error(toKoreanAuthError(error))
+}
+
+export async function deleteAccount() {
+  const session = await ensureAnonymousSession()
+  if (!session.user.email) throw new Error('로그인한 회원만 탈퇴할 수 있습니다.')
+  const { error, data } = await supabase.functions.invoke('api', { body: { action: 'delete-account' } })
+  if (error || data?.error) throw new Error(data?.error || toKoreanAuthError(error))
 }
 
 export async function signOutToGuest() {
@@ -42,7 +56,9 @@ export async function getProfile(user) {
   if (!supabase || !isRegisteredUser(user)) return emptyProfile
   const { data, error } = await supabase.from('user_settings').select('data').eq('user_id', user.id).maybeSingle()
   if (error) throw error
-  return { ...emptyProfile, ...(data?.data || {}) }
+  const stored = data?.data || {}
+  const metadataHeight = Number(user.user_metadata?.heightCm)
+  return { ...emptyProfile, ...stored, heightCm: stored.heightCm || (Number.isFinite(metadataHeight) ? metadataHeight : null), favoriteBuses: stored.favoriteBuses || [] }
 }
 
 export async function saveProfile(user, patch) {
