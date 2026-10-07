@@ -31,6 +31,9 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
     const left = Math.max(horizontalInset, Math.min(point.x, window.innerWidth - horizontalInset))
     setPopupPosition({ left: `${left}px`, top: `${point.y}px`, placement: point.y < 168 ? 'below' : 'above' })
   }, [])
+  const revealMapOnMobile = useCallback(() => {
+    if (window.matchMedia('(max-width: 760px)').matches && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
   useEffect(() => {
     if (!mapKey) return undefined
@@ -41,12 +44,12 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
       kakao.maps.event.addListener(map, 'zoom_changed', () => setZoom(map.getLevel()))
       kakao.maps.event.addListener(map, 'click', async (event) => {
         const coordinates = { latitude: event.latLng.getLat(), longitude: event.latLng.getLng() }
-        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { setSelectedLocation(place); updatePopupPosition(place, map); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map }); nearbyMarkers.current.forEach((marker) => marker.setMap(null)); nearbyMarkers.current = nearby.map((nearbyPlace) => { const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(nearbyPlace.latitude, nearbyPlace.longitude), map, title: nearbyPlace.name }); kakao.maps.event.addListener(marker, 'click', () => { setSelectedLocation(nearbyPlace); updatePopupPosition(nearbyPlace, map) }); return marker }); setStatus(`${place.name}을(를) 선택했습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
+        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map }); nearbyMarkers.current.forEach((marker) => marker.setMap(null)); nearbyMarkers.current = nearby.map((nearbyPlace) => { const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(nearbyPlace.latitude, nearbyPlace.longitude), map, title: nearbyPlace.name }); kakao.maps.event.addListener(marker, 'click', () => { revealMapOnMobile(); setSelectedLocation(nearbyPlace); updatePopupPosition(nearbyPlace, map) }); return marker }); setStatus(`${place.name}을(를) 선택했습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
       })
       setMapInstance(map); setStatus(routeMode ? '선택한 경로를 지도에 표시합니다.' : '지도를 누르면 출발지·도착지·집·회사로 지정할 수 있습니다.')
     })).catch((error) => { if (!cancelled) setStatus(error.message) })
     return () => { cancelled = true }
-  }, [routeMode, updatePopupPosition])
+  }, [routeMode, revealMapOnMobile, updatePopupPosition])
 
   useEffect(() => {
     if (!mapInstance || !selectedLocation || !window.kakao?.maps) return undefined
