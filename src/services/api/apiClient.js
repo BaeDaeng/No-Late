@@ -67,6 +67,24 @@ export const apiClient = {
     return { arrivals, fromCache: false }
   },
 
+  async getSubwayLineStations() {
+    const cacheKey = 'subway-line-stations'
+    const cached = getCachedRealtime(cacheKey)
+    if (cached) return cached
+    const data = await requestApi('subway-line-stations', {})
+    const rows = asList(data.SearchSTNBySubwayLineInfo?.row)
+    const lines = rows.reduce((result, item) => {
+      const line = String(item.LINE_NUM || item.SUBWAY_LINE || '').trim()
+      const station = String(item.STATION_NM || '').trim()
+      if (!line || !station) return result
+      result[line] ||= []
+      if (!result[line].includes(station)) result[line].push(station)
+      return result
+    }, {})
+    cacheRealtime(cacheKey, lines, 24 * 60 * 60 * 1000)
+    return lines
+  },
+
   async getBusVehiclePositions(routeId) {
     if (!routeId) throw new Error('버스 노선 식별자가 없습니다.')
     const cacheKey = `bus:${routeId}`

@@ -31,6 +31,7 @@ Deno.serve(async (request) => {
       return json(await external(`https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?${query}`))
     }
     if (action === 'subway') return json(await external(`http://swopenAPI.seoul.go.kr/api/subway/${Deno.env.get('SEOUL_SUBWAY_API_KEY')}/json/realtimeStationArrival/0/10/${encodeURIComponent(params.stationName)}`))
+    if (action === 'subway-line-stations') return json(await external(`http://openapi.seoul.go.kr:8088/${Deno.env.get('SEOUL_SUBWAY_STATION_API_KEY')}/json/SearchSTNBySubwayLineInfo/1/1000/`))
     if (action === 'bus') return json(await external(`http://ws.bus.go.kr/api/rest/buspos/getBusPosByRtid?${new URLSearchParams({ busRouteId: params.routeId, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
     if (action === 'bus-routes') return json(await external(`http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList?${new URLSearchParams({ strSrch: params.query, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
     if (action === 'bus-route-stops') return json(await external(`http://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute?${new URLSearchParams({ busRouteId: params.routeId, ServiceKey: Deno.env.get('SEOUL_BUS_SERVICE_KEY') || '', resultType: 'json' })}`))
