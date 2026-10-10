@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TransitNavigation } from '../components/TransitNavigation.jsx'
 import { apiClient } from '../services/api/apiClient.js'
+import { subwayLineColor, subwayLineLabel } from '../domain/transitArrival.js'
 
 const busSamples = ['740', '7016', '9000', 'M5107']
 
@@ -16,8 +17,10 @@ function SubwayPage() {
   const [status, setStatus] = useState('')
   const [map, setMap] = useState(null)
   const [mapStatus, setMapStatus] = useState('공식 노선도를 준비하는 중…')
-  const [mapScale, setMapScale] = useState(0.88)
+  const [mapScale, setMapScale] = useState(2.2)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const mapCanvasRef = useRef(null)
+  const gestureRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -30,6 +33,17 @@ function SubwayPage() {
     })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (!map) return
+    const frame = requestAnimationFrame(() => {
+      const canvas = mapCanvasRef.current
+      if (!canvas) return
+      canvas.scrollLeft = Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2)
+      canvas.scrollTop = Math.max(0, (canvas.scrollHeight - canvas.clientHeight) / 2)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [map])
 
   const suggestions = useMemo(() => {
     const keyword = query.trim().replace(/역$/, '')
@@ -59,7 +73,39 @@ function SubwayPage() {
     search(stationName)
   }
 
-  const updateScale = (amount) => setMapScale((current) => Math.max(0.5, Math.min(1.8, Number((current + amount).toFixed(2)))))
+  const updateScale = (amount) => setMapScale((current) => Math.max(1.1, Math.min(3.6, Number((current + amount).toFixed(2)))))
+  const onMapWheel = (event) => { event.preventDefault(); updateScale(event.deltaY < 0 ? 0.14 : -0.14) }
+  const onMapTouchStart = (event) => {
+    const canvas = mapCanvasRef.current
+    if (!canvas) return
+    if (event.touches.length === 2) {
+      const [first, second] = event.touches
+      gestureRef.current = { kind: 'pinch', distance: Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY), scale: mapScale }
+      return
+    }
+    if (event.touches.length === 1) {
+      const touch = event.touches[0]
+      gestureRef.current = { kind: 'pan', x: touch.clientX, y: touch.clientY, left: canvas.scrollLeft, top: canvas.scrollTop }
+    }
+  }
+  const onMapTouchMove = (event) => {
+    const canvas = mapCanvasRef.current
+    const gesture = gestureRef.current
+    if (!canvas || !gesture) return
+    if (gesture.kind === 'pinch' && event.touches.length === 2) {
+      event.preventDefault()
+      const [first, second] = event.touches
+      const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)
+      setMapScale(Math.max(1.1, Math.min(3.6, Number((gesture.scale * (distance / gesture.distance)).toFixed(2)))))
+      return
+    }
+    if (gesture.kind === 'pan' && event.touches.length === 1) {
+      event.preventDefault()
+      const touch = event.touches[0]
+      canvas.scrollLeft = gesture.left - (touch.clientX - gesture.x)
+      canvas.scrollTop = gesture.top - (touch.clientY - gesture.y)
+    }
+  }
 
   return <section className="transit-page subway-page">
     <div className="subway-search-bar">
@@ -70,9 +116,9 @@ function SubwayPage() {
       {showSuggestions && suggestions.length > 0 && <div className="subway-suggestions" role="listbox">{suggestions.map((stationName) => <button key={stationName} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectStation(stationName)}>{stationName}역</button>)}</div>}
     </div>
     <section className="subway-map-stage" aria-label="서울 수도권 지하철 전체 노선도">
-      <div className="subway-map-canvas">{map ? <InteractiveSubwayMap map={map} scale={mapScale} onSelect={selectStation} /> : <p className="subway-map-loading">{mapStatus}</p>}</div>
-      <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.1)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.1)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(0.88)}>맞춤</button></div>
-      {(station || status) && <aside className="subway-station-sheet" aria-live="polite"><div className="subway-station-sheet-heading"><div><span>실시간 도착</span><strong>{station ? `${station}역` : '역 정보'}</strong></div><button type="button" onClick={() => { setStation(''); setArrivals([]); setStatus('') }} aria-label="역 정보 닫기">×</button></div>{arrivals.length > 0 && <div className="subway-sheet-arrivals">{arrivals.map((arrival, index) => <article key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className={`line-dot line-${arrival.routeId.slice(-1)}`}>{subwayLineName(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{status && <p className="subway-sheet-status">{status}</p>}</aside>}
+      <div className="subway-map-canvas" ref={mapCanvasRef} onWheel={onMapWheel} onTouchStart={onMapTouchStart} onTouchMove={onMapTouchMove} onTouchEnd={() => { gestureRef.current = null }} onTouchCancel={() => { gestureRef.current = null }}>{map ? <InteractiveSubwayMap map={map} scale={mapScale} onSelect={selectStation} /> : <p className="subway-map-loading">{mapStatus}</p>}</div>
+      <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.14)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.14)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(1.5)}>맞춤</button></div>
+      {(station || status) && <aside className="subway-station-sheet" aria-live="polite"><div className="subway-station-sheet-heading"><div><span>실시간 도착</span><strong>{station ? `${station}역` : '역 정보'}</strong></div><button type="button" onClick={() => { setStation(''); setArrivals([]); setStatus('') }} aria-label="역 정보 닫기">×</button></div>{arrivals.length > 0 && <div className="subway-sheet-arrivals">{arrivals.map((arrival, index) => <article key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className="line-dot" style={{ backgroundColor: subwayLineColor(arrival.routeId) }}>{subwayLineLabel(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{status && <p className="subway-sheet-status">{status}</p>}</aside>}
     </section>
   </section>
 }
@@ -126,5 +172,4 @@ function TransitSearch({ value, onChange, onSubmit, placeholder }) { return <for
 function QuickSearch({ items, onSelect }) { return <div className="quick-search">{items.map((item) => <button type="button" key={item} onClick={() => onSelect(item)}>{item}</button>)}</div> }
 function CurrentLocation() { const [message, setMessage] = useState(''); const locate = () => { if (!navigator.geolocation) { setMessage('이 브라우저에서는 위치 확인을 지원하지 않습니다.'); return }; setMessage('현재 위치를 확인하는 중…'); navigator.geolocation.getCurrentPosition((position) => setMessage(`현재 위치 확인됨 · ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`), () => setMessage('위치 권한을 허용하면 현재 위치를 확인할 수 있어요.'), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }) }; return <div className="transit-location"><button type="button" onClick={locate}>현재 위치 표시</button>{message && <span>{message}</span>}</div> }
 function EmptyTransit({ title, description }) { return <div className="transit-empty"><strong>{title}</strong><p>{description}</p></div> }
-function subwayLineName(routeId) { const number = Number(String(routeId).slice(-1)); return Number.isFinite(number) && number > 0 ? `${number}호선` : '전철' }
 function vehicleItems(data) { const value = data?.msgBody?.itemList; return Array.isArray(value) ? value : value ? [value] : [] }
