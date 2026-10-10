@@ -101,7 +101,7 @@ Deno.serve(async (request) => {
     }
     if (action === 'kakao-place') return json(await external(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(params.query)}`, { Authorization: `KakaoAK ${kakaoKey}` }))
     if (action === 'kakao-nearby') {
-      const base = new URLSearchParams({ x: String(params.longitude), y: String(params.latitude), radius: String(Math.min(Number(params.radius) || 350, 1000)), size: '5', sort: 'distance' })
+      const base = new URLSearchParams({ x: String(params.longitude), y: String(params.latitude), radius: String(Math.min(Number(params.radius) || 350, 1000)), size: '10', sort: 'distance' })
       const categories = ['SW8', 'CS2', 'CE7', 'FD6']
       const results = await Promise.all(categories.map((category) => external(`https://dapi.kakao.com/v2/local/search/category.json?${base}&category_group_code=${category}`, { Authorization: `KakaoAK ${kakaoKey}` })))
       const documents = results.flatMap((result) => result.documents || []).filter((place, index, all) => all.findIndex((item) => item.id === place.id) === index).sort((a, b) => Number(a.distance || Infinity) - Number(b.distance || Infinity))

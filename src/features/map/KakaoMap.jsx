@@ -16,12 +16,15 @@ function segmentPoints(segment, index, segments, origin, destination) { const pa
 function subwayColor(label) { const line = String(label).match(/([1-9])호선/); return ({ 1: '#1f4f99', 2: '#22a35a', 3: '#ef7d22', 4: '#2d9ccc', 5: '#8936a6', 6: '#a65e2e', 7: '#6678c9', 8: '#df4964', 9: '#b59a32' })[line?.[1]] || '#516fc4' }
 function busColor(label) { const value = String(label); const number = value.match(/[0-9]+/)?.[0] || ''; if (/^[MN]/i.test(value)) return '#d8493f'; if (number.length >= 4) return '#3b9b5c'; if (number.startsWith('8')) return '#c79016'; return '#2d6ecb' }
 function segmentStyle(segment) { if (segment.type === 'walk') return { color: '#6c7680', weight: 5, opacity: .8, style: 'shortdash' }; if (segment.type === 'subway') return { color: subwayColor(segment.label), weight: 7, opacity: .92, style: 'solid' }; return { color: busColor(segment.label), weight: 7, opacity: .92, style: 'solid' } }
+function nearbyMarkerLimit(level) { if (level >= 7) return 2; if (level >= 6) return 4; if (level >= 5) return 7; if (level >= 3) return 13; return 20 }
+function circleMarkerImage(kakao, color, size) { const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${(size / 2) - 1.5}" fill="${color}" stroke="white" stroke-width="3"/></svg>`; return new kakao.maps.MarkerImage(`data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`, new kakao.maps.Size(size, size), { offset: new kakao.maps.Point(size / 2, size / 2) }) }
 
 export function KakaoMap({ route, origin, destination, routeMode = false, selectionTarget = 'origin', onSelectPlace }) {
   const mapElement = useRef(null)
   const overlays = useRef([])
   const clickMarker = useRef(null)
   const nearbyMarkers = useRef([])
+  const nearbyPlaces = useRef([])
   const [mapInstance, setMapInstance] = useState(null)
   const [status, setStatus] = useState(mapKey ? '지도를 준비하는 중입니다…' : '카카오 JavaScript 키를 추가하면 이곳에 지도가 표시됩니다.')
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -39,6 +42,17 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   const revealMapOnMobile = useCallback(() => {
     if (window.matchMedia('(max-width: 760px)').matches && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+  const renderNearbyMarkers = useCallback((map, places = nearbyPlaces.current) => {
+    if (!map || !window.kakao?.maps) return
+    const kakao = window.kakao
+    nearbyMarkers.current.forEach((marker) => marker.setMap(null))
+    const markerImage = circleMarkerImage(kakao, '#2588d7', 16)
+    nearbyMarkers.current = places.slice(0, nearbyMarkerLimit(map.getLevel())).map((nearbyPlace) => {
+      const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(nearbyPlace.latitude, nearbyPlace.longitude), map, title: nearbyPlace.name, image: markerImage })
+      kakao.maps.event.addListener(marker, 'click', () => { revealMapOnMobile(); setSelectedLocation(nearbyPlace); updatePopupPosition(nearbyPlace, map) })
+      return marker
+    })
+  }, [revealMapOnMobile, updatePopupPosition])
 
   useEffect(() => {
     if (!mapKey) return undefined
@@ -46,15 +60,15 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
     loadKakaoMaps(mapKey).then((kakao) => kakao.maps.load(() => {
       if (cancelled || !mapElement.current) return
       const map = new kakao.maps.Map(mapElement.current, { center: new kakao.maps.LatLng(defaultCenter.latitude, defaultCenter.longitude), level: 5 })
-      kakao.maps.event.addListener(map, 'zoom_changed', () => setZoom(map.getLevel()))
+      kakao.maps.event.addListener(map, 'zoom_changed', () => { setZoom(map.getLevel()); renderNearbyMarkers(map) })
       kakao.maps.event.addListener(map, 'click', async (event) => {
         const coordinates = { latitude: event.latLng.getLat(), longitude: event.latLng.getLng() }
-        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map }); nearbyMarkers.current.forEach((marker) => marker.setMap(null)); nearbyMarkers.current = nearby.map((nearbyPlace) => { const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(nearbyPlace.latitude, nearbyPlace.longitude), map, title: nearbyPlace.name }); kakao.maps.event.addListener(marker, 'click', () => { revealMapOnMobile(); setSelectedLocation(nearbyPlace); updatePopupPosition(nearbyPlace, map) }); return marker }); setStatus(`${place.name}을(를) 선택했습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
+        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map, image: circleMarkerImage(kakao, '#18a765', 20) }); nearbyPlaces.current = nearby; renderNearbyMarkers(map, nearby); setStatus(`${place.name}을(를) 선택했습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
       })
       setMapInstance(map); setStatus(routeMode ? '선택한 경로를 지도에 표시합니다.' : '지도를 누르면 출발지·도착지·집·회사로 지정할 수 있습니다.')
     })).catch((error) => { if (!cancelled) setStatus(error.message) })
     return () => { cancelled = true }
-  }, [routeMode, revealMapOnMobile, updatePopupPosition])
+  }, [routeMode, revealMapOnMobile, renderNearbyMarkers, updatePopupPosition])
 
   useEffect(() => {
     if (!mapInstance || !selectedLocation || !window.kakao?.maps) return undefined
