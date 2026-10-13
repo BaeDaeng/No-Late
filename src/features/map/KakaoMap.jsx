@@ -26,6 +26,7 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   const nearbyMarkers = useRef([])
   const favoriteMarkers = useRef([])
   const nearbyPlaces = useRef([])
+  const mapClickToken = useRef(0)
   const [mapInstance, setMapInstance] = useState(null)
   const [status, setStatus] = useState(mapKey ? '지도를 준비하는 중입니다…' : '카카오 JavaScript 키를 추가하면 이곳에 지도가 표시됩니다.')
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -61,17 +62,22 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
       kakao.maps.event.addListener(map, 'zoom_changed', () => { setZoom(map.getLevel()); renderNearbyMarkers(map) })
       kakao.maps.event.addListener(map, 'click', async (event) => {
         const coordinates = { latitude: event.latLng.getLat(), longitude: event.latLng.getLng() }
-        const [placeRequest, nearbyRequest] = await Promise.allSettled([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)])
-        if (cancelled) return
-        if (placeRequest.status !== 'fulfilled') { setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.'); return }
-        const place = placeRequest.value
-        const nearby = nearbyRequest.status === 'fulfilled' ? nearbyRequest.value : []
-        revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map)
+        const token = ++mapClickToken.current
+        const pendingPlace = { id: `map:${coordinates.longitude.toFixed(6)},${coordinates.latitude.toFixed(6)}`, name: '장소 정보 확인 중…', address: '선택한 위치의 정보를 확인하고 있습니다.', ...coordinates }
+        revealMapOnMobile(); setSelectedLocation(pendingPlace); updatePopupPosition(pendingPlace, map)
         if (clickMarker.current) clickMarker.current.setMap(null)
         clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map, image: circleMarkerImage(kakao, '#18a765', 20) })
+        const [placeRequest, nearbyRequest] = await Promise.allSettled([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)])
+        if (cancelled || token !== mapClickToken.current) return
+        if (placeRequest.status !== 'fulfilled') { setSelectedLocation({ ...pendingPlace, name: '선택한 위치', address: '주소 정보를 찾지 못했습니다.' }); setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.'); return }
+        const place = placeRequest.value
+        const nearby = nearbyRequest.status === 'fulfilled' ? nearbyRequest.value : []
+        const nearestPlace = nearby.find((item) => item.distanceMeters <= 80)
+        const selectedPlace = nearestPlace ? { ...nearestPlace, ...coordinates } : place
+        setSelectedLocation(selectedPlace); updatePopupPosition(selectedPlace, map)
         nearbyPlaces.current = nearby
         renderNearbyMarkers(map, nearby)
-        setStatus(nearbyRequest.status === 'fulfilled' ? `${place.name}을(를) 선택했습니다.` : `${place.name}을(를) 선택했습니다. 주변 장소는 잠시 후 다시 확인할 수 있어요.`)
+        setStatus(nearbyRequest.status === 'fulfilled' ? `${selectedPlace.name}을(를) 선택했습니다.` : `${place.name}을(를) 선택했습니다. 주변 장소는 잠시 후 다시 확인할 수 있어요.`)
       })
       setMapInstance(map); setStatus(routeMode ? '선택한 경로를 지도에 표시합니다.' : '지도를 누르면 출발지와 도착지를 지정할 수 있습니다.')
     })).catch((error) => { if (!cancelled) setStatus(error.message) })
