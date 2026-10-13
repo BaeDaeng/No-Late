@@ -27,7 +27,7 @@ export function calculateTripPrediction({ route, tripRequest, weather = null, ar
     ...(weatherMinutes ? [{ label: weather?.precipitationType === 'snow' ? '눈길 보정' : '강수 보정', minutes: weatherMinutes, reason: '도보 구간을 보수적으로 계산' }] : []),
     ...(extraWaitMinutes ? [{ label: '첫 차량 대기', minutes: extraWaitMinutes, reason: '실시간 도착정보 반영' }] : []),
     ...(signalMinutes ? [{ label: '신호·횡단 대기', minutes: signalMinutes, reason: '도보 구간 수 기준' }] : []),
-    ...(uncertaintyMinutes ? [{ label: '안전 여유', minutes: uncertaintyMinutes, reason: usesFallbackData ? '일부 실시간 정보 미수신' : '환승·도보 불확실성' }] : []),
+    ...(uncertaintyMinutes ? [{ label: '안전 여유', minutes: uncertaintyMinutes, reason: usesFallbackData ? '실시간 변동을 고려한 여유 시간' : '환승·도보 변동을 고려한 여유 시간' }] : []),
   ]
   return { baseMinutes, optimisticMinutes, safeMinutes, leaveByTime: leaveBy?.toISOString() || null, optimisticArrivalTime: plusMinutes(now, optimisticMinutes), safeArrivalTime: plusMinutes(now, safeMinutes), riskScore, adjustmentBreakdown, usedFallbackData: usesFallbackData, confidence, runningSuggestionMinutes, minutesUntilLeave }
 }
