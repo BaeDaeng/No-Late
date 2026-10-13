@@ -5,7 +5,7 @@ import { SearchPage } from './pages/SearchPage.jsx'
 import { ResultPage } from './pages/ResultPage.jsx'
 import { SharedTripPage } from './pages/SharedTripPage.jsx'
 import { TransitInfoPage } from './pages/TransitInfoPage.jsx'
-import { getStoredTripRequest, saveTripRequest } from './features/search/tripRequestStorage.js'
+import { clearStoredTripRequest, getStoredTripRequest, saveTripRequest } from './features/search/tripRequestStorage.js'
 import { createTripRequest } from './features/search/tripRequest.js'
 import { AccountPanel } from './components/AccountPanel.jsx'
 import { getProfile, isRegisteredUser, saveProfile } from './services/account/accountService.js'
@@ -34,7 +34,7 @@ function App() {
   if (error) return <ErrorScreen error={error} onRetry={() => setError(null)} />
   const account = <AccountPanel user={user} profile={profile} onUserChange={setUser} onProfileChange={setProfile} onStartSavedRoute={openSavedPlacePair} />
   if (path.startsWith('/share/')) return <>{account}<SharedTripPage shareId={path.split('/')[2]} onHome={() => navigate('/')} /></>
-  if (path === '/result') { const tripRequest = getStoredTripRequest(); return <>{account}{tripRequest ? <ResultPage tripRequest={tripRequest} onBack={() => navigate('/')} isRegistered={isRegisteredUser(user)} /> : <Loading message="입력 정보를 불러오는 중입니다." />}</> }
+  if (path === '/result') { const tripRequest = getStoredTripRequest(); return <>{account}{tripRequest ? <ResultPage tripRequest={tripRequest} onBack={() => { clearStoredTripRequest(); navigate('/') }} isRegistered={isRegisteredUser(user)} /> : <Loading message="입력 정보를 불러오는 중입니다." />}</> }
   if (path === '/subway' || path === '/bus') return <>{account}<TransitInfoPage type={path.slice(1)} onNavigate={navigate} favoriteBuses={isRegisteredUser(user) ? profile.favoriteBuses : []} /></>
   return <>{account}<SearchPage onComplete={() => navigate('/result')} onError={setError} profile={profile} isRegistered={isRegisteredUser(user)} onSaveProfile={updateProfile} onNavigate={navigate} /></>
 }

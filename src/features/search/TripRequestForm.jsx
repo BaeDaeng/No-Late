@@ -5,13 +5,12 @@ import { PlaceAutocomplete } from './PlaceAutocomplete.jsx'
 import { createTripRequest, defaultTripForm, validateTripForm } from './tripRequest.js'
 import { getStoredTripForm, saveTripRequest } from './tripRequestStorage.js'
 
-const stored = getStoredTripForm()
 const toForm = (saved) => saved ? { ...defaultTripForm, ...saved, appointmentTime: saved.appointmentAt ? new Date(saved.appointmentAt).toTimeString().slice(0, 5) : '', withoutAppointment: !saved.appointmentAt, currentFloor: String(saved.currentFloor), heightCm: saved.heightCm ? String(saved.heightCm) : '' } : defaultTripForm
 const hours = Array.from({ length: 24 }, (_, value) => String(value).padStart(2, '0'))
 const minutes = Array.from({ length: 60 }, (_, value) => String(value).padStart(2, '0'))
 
 export function TripRequestForm({ onComplete, onError, profile, isRegistered, mapSelection, onMapSelectionHandled, mapTarget, onMapTargetChange }) {
-  const [values, setValues] = useState(() => toForm(stored))
+  const [values, setValues] = useState(() => toForm(getStoredTripForm()))
   const [errors, setErrors] = useState({})
   const [locationStatus, setLocationStatus] = useState('')
   useEffect(() => { if (!mapSelection) return undefined; const timer = window.setTimeout(() => { setValues((current) => ({ ...current, [mapSelection.target]: mapSelection.place })); setLocationStatus(`${mapSelection.place.name}을(를) ${mapSelection.target === 'origin' ? '출발지' : '도착지'}로 지정했습니다.`); onMapSelectionHandled() }, 0); return () => window.clearTimeout(timer) }, [mapSelection, onMapSelectionHandled])
