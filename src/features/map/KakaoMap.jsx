@@ -35,10 +35,7 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   const updatePopupPosition = useCallback((place, map) => {
     if (!place || !map || !window.kakao?.maps) return
     const point = map.getProjection().pointFromCoords(new window.kakao.maps.LatLng(place.latitude, place.longitude))
-    const popupWidth = Math.min(300, Math.max(220, window.innerWidth - 24))
-    const horizontalInset = (popupWidth / 2) + 12
-    const left = Math.max(horizontalInset, Math.min(point.x, window.innerWidth - horizontalInset))
-    setPopupPosition({ left: `${left}px`, top: `${point.y}px`, placement: point.y < 168 ? 'below' : 'above' })
+    setPopupPosition({ left: `${point.x}px`, top: `${point.y}px`, placement: point.y < 168 ? 'below' : 'above' })
   }, [])
   const revealMapOnMobile = useCallback(() => {
     if (window.matchMedia('(max-width: 760px)').matches && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -84,9 +81,26 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
   useEffect(() => {
     if (!mapInstance || !selectedLocation || !window.kakao?.maps) return undefined
     const refreshPopupPosition = () => updatePopupPosition(selectedLocation, mapInstance)
-    window.kakao.maps.event.addListener(mapInstance, 'idle', refreshPopupPosition)
-    return () => window.kakao.maps.event.removeListener(mapInstance, 'idle', refreshPopupPosition)
+    refreshPopupPosition()
+    window.kakao.maps.event.addListener(mapInstance, 'center_changed', refreshPopupPosition)
+    window.kakao.maps.event.addListener(mapInstance, 'zoom_changed', refreshPopupPosition)
+    return () => {
+      window.kakao.maps.event.removeListener(mapInstance, 'center_changed', refreshPopupPosition)
+      window.kakao.maps.event.removeListener(mapInstance, 'zoom_changed', refreshPopupPosition)
+    }
   }, [mapInstance, selectedLocation, updatePopupPosition])
+
+  useEffect(() => {
+    if (!selectedLocation) return undefined
+    const closeOnOutsidePress = (event) => {
+      if (!(event.target instanceof Element)) return
+      if (event.target.closest('.map-click-card, .map-sdk-host')) return
+      setSelectedLocation(null)
+      setPopupPosition(null)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePress)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePress)
+  }, [selectedLocation])
 
   useEffect(() => {
     if (!mapInstance || routeMode || !window.kakao?.maps) return
