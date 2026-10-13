@@ -1,6 +1,6 @@
 import { ensureAnonymousSession, supabase } from '../../supabase.js'
 
-const emptyProfile = Object.freeze({ heightCm: null, home: null, work: null, favoriteBuses: [] })
+const emptyProfile = Object.freeze({ heightCm: null, favoriteBuses: [], favoritePlaces: [] })
 
 export function toKoreanAuthError(error) {
   const message = String(error?.message || '')
@@ -58,7 +58,7 @@ export async function getProfile(user) {
   if (error) throw error
   const stored = data?.data || {}
   const metadataHeight = Number(user.user_metadata?.heightCm)
-  return { ...emptyProfile, ...stored, heightCm: stored.heightCm || (Number.isFinite(metadataHeight) ? metadataHeight : null), favoriteBuses: stored.favoriteBuses || [] }
+  return { ...emptyProfile, ...stored, heightCm: stored.heightCm || (Number.isFinite(metadataHeight) ? metadataHeight : null), favoriteBuses: stored.favoriteBuses || [], favoritePlaces: stored.favoritePlaces || [] }
 }
 
 export async function saveProfile(user, patch) {

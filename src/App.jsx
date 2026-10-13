@@ -15,11 +15,11 @@ function App() {
   const [path, setPath] = useState(window.location.pathname)
   const [error, setError] = useState(null)
   const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState({ heightCm: null, home: null, work: null })
+  const [profile, setProfile] = useState({ heightCm: null, favoriteBuses: [], favoritePlaces: [] })
   useEffect(() => { const onPopState = () => setPath(window.location.pathname); window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState) }, [])
   useEffect(() => {
     if (!supabase) return undefined
-    const load = async (nextUser) => { setUser(nextUser || null); if (isRegisteredUser(nextUser)) { try { setProfile(await getProfile(nextUser)) } catch { setProfile({ heightCm: null, home: null, work: null }) } } else setProfile({ heightCm: null, home: null, work: null }) }
+    const load = async (nextUser) => { setUser(nextUser || null); if (isRegisteredUser(nextUser)) { try { setProfile(await getProfile(nextUser)) } catch { setProfile({ heightCm: null, favoriteBuses: [], favoritePlaces: [] }) } } else setProfile({ heightCm: null, favoriteBuses: [], favoritePlaces: [] }) }
     supabase.auth.getUser().then(({ data }) => load(data.user)).catch(() => load(null))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => load(session?.user))
     return () => subscription.unsubscribe()
