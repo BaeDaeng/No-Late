@@ -23,8 +23,11 @@ export function toSubwayArrivals(data, stationName) {
 }
 
 export function selectSubwayArrival(arrivals, lineLabel) {
-  const normalized = String(lineLabel || '').replace(/\s/g, '').replace('경의중앙선', '경의·중앙선')
-  return arrivals.find((arrival) => subwayLineLabel(arrival.routeId).replace(/\s/g, '') === normalized) || null
+  const normalized = String(lineLabel || '').replace(/\([^)]*\)/g, '').replace(/\s/g, '').replace('경의중앙선', '경의·중앙선')
+  return arrivals.find((arrival) => {
+    const line = subwayLineLabel(arrival.routeId).replace(/\s/g, '')
+    return normalized.includes(line) || line.includes(normalized)
+  }) || null
 }
 
 export function fallbackTransitArrival(stopName, minutes) { return { routeId: '', stopName, arrivalInMinutes: minutes, fetchedAt: new Date().toISOString(), source: 'fallback', isFallback: true, message: '실시간 도착 정보를 받지 못해 기본 대기시간으로 계산합니다.', direction: '' } }
