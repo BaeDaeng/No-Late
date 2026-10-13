@@ -2,7 +2,7 @@
 .back-link { border: 0; padding: 0; background: transparent; color: #53606d; font: inherit; font-size: .82rem; cursor: pointer; }
 .route-heading { margin: 18px 0 16px; }
 .route-heading .eyebrow { color: #168d59; font-size: .75rem; font-weight: 800; }
-.route-heading h1 { margin: 5px 0 7px; font-size: clamp(1.3rem, 2.2vw, 1.75rem); letter-spacing: -.045em; }
+.route-heading h1 { margin: 5px 0 7px; color: #17212b; font-size: clamp(1.3rem, 2.2vw, 1.75rem); letter-spacing: -.045em; }
 .route-heading h1 span { color: #19a767; }
 .route-heading p { color: #68707c; font-size: .84rem; line-height: 1.5; }
 
