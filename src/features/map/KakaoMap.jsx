@@ -64,7 +64,17 @@ export function KakaoMap({ route, origin, destination, routeMode = false, select
       kakao.maps.event.addListener(map, 'zoom_changed', () => { setZoom(map.getLevel()); renderNearbyMarkers(map) })
       kakao.maps.event.addListener(map, 'click', async (event) => {
         const coordinates = { latitude: event.latLng.getLat(), longitude: event.latLng.getLng() }
-        try { const [place, nearby] = await Promise.all([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)]); if (!cancelled) { revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map); if (clickMarker.current) clickMarker.current.setMap(null); clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map, image: circleMarkerImage(kakao, '#18a765', 20) }); nearbyPlaces.current = nearby; renderNearbyMarkers(map, nearby); setStatus(`${place.name}을(를) 선택했습니다.`) } } catch { if (!cancelled) setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.') }
+        const [placeRequest, nearbyRequest] = await Promise.allSettled([apiClient.reverseGeocode(coordinates), apiClient.getNearbyPlaces(coordinates)])
+        if (cancelled) return
+        if (placeRequest.status !== 'fulfilled') { setStatus('선택한 위치의 장소 정보를 찾지 못했습니다.'); return }
+        const place = placeRequest.value
+        const nearby = nearbyRequest.status === 'fulfilled' ? nearbyRequest.value : []
+        revealMapOnMobile(); setSelectedLocation(place); updatePopupPosition(place, map)
+        if (clickMarker.current) clickMarker.current.setMap(null)
+        clickMarker.current = new kakao.maps.Marker({ position: event.latLng, map, image: circleMarkerImage(kakao, '#18a765', 20) })
+        nearbyPlaces.current = nearby
+        renderNearbyMarkers(map, nearby)
+        setStatus(nearbyRequest.status === 'fulfilled' ? `${place.name}을(를) 선택했습니다.` : `${place.name}을(를) 선택했습니다. 주변 장소는 잠시 후 다시 확인할 수 있어요.`)
       })
       setMapInstance(map); setStatus(routeMode ? '선택한 경로를 지도에 표시합니다.' : '지도를 누르면 출발지와 도착지를 지정할 수 있습니다.')
     })).catch((error) => { if (!cancelled) setStatus(error.message) })
