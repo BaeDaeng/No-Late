@@ -15,7 +15,7 @@ function SubwayPage() {
   const [status, setStatus] = useState('')
   const [map, setMap] = useState(null)
   const [mapStatus, setMapStatus] = useState('공식 노선도를 준비하는 중…')
-  const [mapScale, setMapScale] = useState(2.2)
+  const [mapScale, setMapScale] = useState(2.8)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const mapCanvasRef = useRef(null)
   const gestureRef = useRef(null)
@@ -115,14 +115,43 @@ function SubwayPage() {
     </div>
     <section className="subway-map-stage" aria-label="서울 수도권 지하철 전체 노선도">
       <div className="subway-map-canvas" ref={mapCanvasRef} onWheel={onMapWheel} onTouchStart={onMapTouchStart} onTouchMove={onMapTouchMove} onTouchEnd={() => { gestureRef.current = null }} onTouchCancel={() => { gestureRef.current = null }}>{map ? <InteractiveSubwayMap map={map} scale={mapScale} onSelect={selectStation} /> : <p className="subway-map-loading">{mapStatus}</p>}</div>
-      <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.14)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.14)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(1.5)}>맞춤</button></div>
+      <div className="subway-map-floating-controls" aria-label="노선도 확대 및 축소"><button type="button" onClick={() => updateScale(0.14)} aria-label="노선도 확대">+</button><button type="button" onClick={() => updateScale(-0.14)} aria-label="노선도 축소">−</button><button className="map-fit" type="button" onClick={() => setMapScale(2.1)}>맞춤</button></div>
       {(station || status) && <aside className="subway-station-sheet" aria-live="polite"><div className="subway-station-sheet-heading"><div><span>실시간 도착</span><strong>{station ? `${station}역` : '역 정보'}</strong></div><button type="button" onClick={() => { setStation(''); setArrivals([]); setStatus('') }} aria-label="역 정보 닫기">×</button></div>{arrivals.length > 0 && <div className="subway-sheet-arrivals">{arrivals.map((arrival, index) => <article key={`${arrival.routeId}-${arrival.direction}-${index}`}><span className="line-dot" style={{ backgroundColor: subwayLineColor(arrival.routeId) }}>{subwayLineLabel(arrival.routeId)}</span><div><strong>{arrival.direction || '방면 정보 확인 중'}</strong><p>{arrival.message || '도착 정보를 확인 중입니다.'}</p></div><b>{arrival.arrivalInMinutes === null ? '진입 중' : `${arrival.arrivalInMinutes}분`}</b></article>)}</div>}{status && <p className="subway-sheet-status">{status}</p>}</aside>}
     </section>
   </section>
 }
 
 function InteractiveSubwayMap({ map, scale, onSelect }) {
-  return <svg className="interactive-subway-map" viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: `${scale * 100}%` }} role="group" aria-label="서울 수도권 지하철 노선도. 역을 누르면 도착 정보를 확인합니다.">{map.lines.map((line) => <g key={line.key} className="subway-map-line"><title>{line.label}</title>{line.segments.map((segment, index) => <polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={line.color} strokeWidth={line.width} strokeLinecap="round" strokeLinejoin="round" />)}{line.stations.map((item) => { const label = stationLabel(item); return <g className={`subway-map-station${item.interchange ? ' interchange' : ''}`} key={`${line.key}-${item.id}`} role="button" tabIndex="0" aria-label={`${item.name}역 도착 정보 보기`} onClick={() => onSelect(item.name)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(item.name) } }}><circle className="station-hit-area" cx={item.x} cy={item.y} r="5" /><circle cx={item.x} cy={item.y} r={item.interchange ? '2.5' : '1.8'} /><text x={item.x + label.x} y={item.y + label.y} textAnchor={label.anchor}>{item.name}</text></g> })}</g>)}</svg>
+  const stations = useMemo(() => resolveStationLabels(map.lines), [map])
+  return <svg className="interactive-subway-map" viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: `${scale * 100}%` }} role="group" aria-label="서울 수도권 지하철 노선도. 역을 누르면 도착 정보를 확인합니다.">{map.lines.map((line) => <g key={line.key} className="subway-map-line"><title>{line.label}</title>{line.segments.map((segment, index) => <polyline key={index} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={line.color} strokeWidth={line.width} strokeLinecap="round" strokeLinejoin="round" />)}</g>)}<g className="subway-map-stations">{stations.map((item) => <g className={`subway-map-station${item.interchange ? ' interchange' : ''}`} key={item.key} role="button" tabIndex="0" aria-label={`${item.name}역 도착 정보 보기`} onClick={() => onSelect(item.name)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(item.name) } }}><circle className="station-hit-area" cx={item.x} cy={item.y} r="5" /><circle cx={item.x} cy={item.y} r={item.interchange ? '2.5' : '1.8'} /><text x={item.x + item.label.x} y={item.y + item.label.y} textAnchor={item.label.anchor}>{item.name}</text></g>)}</g></svg>
+}
+
+function resolveStationLabels(lines) {
+  const unique = new Map()
+  lines.flatMap((line) => line.stations).forEach((station) => {
+    const key = station.id || `${station.name}:${Math.round(station.x)}:${Math.round(station.y)}`
+    const existing = unique.get(key)
+    if (!existing || station.interchange) unique.set(key, { ...station, key, interchange: Boolean(station.interchange || existing?.interchange) })
+  })
+  const occupied = []
+  return [...unique.values()].sort((left, right) => left.y - right.y || left.x - right.x).map((station) => {
+    const label = findFreeLabel(station, occupied)
+    const width = Math.max(6, String(station.name).length * 3.15)
+    occupied.push({ left: station.x + label.x - (label.anchor === 'end' ? width : label.anchor === 'middle' ? width / 2 : 0), right: station.x + label.x + (label.anchor === 'start' ? width : label.anchor === 'middle' ? width / 2 : 0), top: station.y + label.y - 3.1, bottom: station.y + label.y + 1.2 })
+    return { ...station, label }
+  })
+}
+
+function findFreeLabel(station, occupied) {
+  const preferred = stationLabel(station)
+  const directions = [preferred, { x: 3.2, y: 1.1, anchor: 'start' }, { x: -3.2, y: 1.1, anchor: 'end' }, { x: 0, y: -3.6, anchor: 'middle' }, { x: 0, y: 5.6, anchor: 'middle' }, { x: 3, y: -2.5, anchor: 'start' }, { x: -3, y: -2.5, anchor: 'end' }]
+  const width = Math.max(6, String(station.name).length * 3.15)
+  for (const multiplier of [1, 1.8, 2.7, 3.8, 5]) for (const direction of directions) {
+    const label = { x: direction.x * multiplier, y: direction.y * multiplier, anchor: direction.anchor }
+    const box = { left: station.x + label.x - (label.anchor === 'end' ? width : label.anchor === 'middle' ? width / 2 : 0), right: station.x + label.x + (label.anchor === 'start' ? width : label.anchor === 'middle' ? width / 2 : 0), top: station.y + label.y - 3.1, bottom: station.y + label.y + 1.2 }
+    if (!occupied.some((item) => box.left < item.right + 1 && box.right > item.left - 1 && box.top < item.bottom + 1 && box.bottom > item.top - 1)) return label
+  }
+  return { x: preferred.x * 5, y: preferred.y * 5, anchor: preferred.anchor }
 }
 
 function stationLabel({ labelPos }) {
